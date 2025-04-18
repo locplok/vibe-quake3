@@ -9,7 +9,9 @@ export class NetworkManager {
     this.connected = false;
     
     // When using Vite proxy, we can just use relative URL for Socket.IO connection
-    this.serverUrl = window.location.origin;
+    this.serverUrl = window.location.hostname === 'localhost' 
+      ? window.location.origin 
+      : 'https://vibe-quake3-server.onrender.com/'; // REPLACE THIS with your actual Render URL
     console.log("Using server URL:", this.serverUrl);
     
     // Debug flag for logging network messages
@@ -29,7 +31,9 @@ export class NetworkManager {
     this.log('Connecting to server:', this.serverUrl);
     
     // Connect to Socket.IO directly or through Vite proxy
-    this.socket = io();
+    this.socket = window.location.hostname === 'localhost' 
+      ? io() // Use Vite proxy for local development
+      : io(this.serverUrl); // Use explicit URL for production
     
     // Set up event listeners
     this.setupEventListeners();
