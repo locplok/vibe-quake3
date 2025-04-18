@@ -187,19 +187,38 @@ export class NetworkManager {
     
     // Player respawned
     this.socket.on('playerRespawned', (respawnInfo) => {
-      this.log('Player respawned:', respawnInfo);
+      console.log("==== PLAYER RESPAWN EVENT ====");
+      console.log('Player respawned:', respawnInfo);
       
       if (respawnInfo.id === this.socket.id && this.game.player) {
         // Handle our own respawn
+        console.log('Handling our own respawn');
+        
+        // Update position
         this.game.player.setPosition(
           respawnInfo.position.x,
           respawnInfo.position.y,
           respawnInfo.position.z
         );
+        
+        // IMPORTANT: Ensure health is reset in client-side data
+        // This provides a backup to ensure health UI is updated
+        this.game.player.health = 100;
+        this.game.player.armor = 0;
+        
+        // Force UI update
+        this.game.player.updateHealthDisplay();
+        this.game.player.updateArmorDisplay();
+        
+        console.log('Player respawned with health:', this.game.player.health);
       } else if (this.players[respawnInfo.id]) {
         // Update other player's position
         this.players[respawnInfo.id].position = respawnInfo.position;
         this.updatePlayerModel(this.players[respawnInfo.id]);
+        
+        // Also update their health in our local data
+        this.players[respawnInfo.id].health = 100;
+        this.players[respawnInfo.id].armor = 0;
       }
     });
     

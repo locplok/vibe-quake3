@@ -489,7 +489,7 @@ export class Player {
   }
   
   die() {
-    console.log('Player died');
+    console.log('==== PLAYER DIED ====');
     
     // Show death effect
     this.showDeathEffect();
@@ -498,9 +498,34 @@ export class Player {
     this.health = 100;
     this.armor = 0; // Explicitly reset armor to 0
     
-    // Update displays
+    // IMPORTANT: Force direct DOM update for health display
+    const healthValueElement = document.getElementById('health-value');
+    if (healthValueElement) {
+      healthValueElement.style.width = '100%';
+      healthValueElement.style.backgroundColor = '#4CAF50'; // Green
+    }
+    
+    const healthTextElement = document.getElementById('health-text');
+    if (healthTextElement) {
+      healthTextElement.textContent = '100';
+    }
+    
+    // Force direct DOM update for armor display
+    const armorValueElement = document.getElementById('armor-value');
+    if (armorValueElement) {
+      armorValueElement.style.width = '0%';
+    }
+    
+    const armorTextElement = document.getElementById('armor-text');
+    if (armorTextElement) {
+      armorTextElement.textContent = '0';
+    }
+    
+    // Also call the regular update methods
     this.updateHealthDisplay();
     this.updateArmorDisplay();
+    
+    console.log('Health and armor reset - Health:', this.health, 'Armor:', this.armor);
     
     // Reset position to a random spawn point
     this.respawnAtRandomPosition();
