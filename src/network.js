@@ -56,8 +56,10 @@ export class NetworkManager {
       console.log("Socket ID:", this.socket.id);
       console.log("Connected to server:", this.serverUrl);
       
+      // Initialize frag counter
+      this.updateFragDisplay(0);
+      
       // IMPORTANT FIX: Set up a timer to sync armor value after connection
-      // This ensures server has the correct armor value
       setTimeout(() => {
         if (this.game && this.game.player) {
           console.log(`Connection established - syncing armor value (${this.game.player.armor}) with server`);
@@ -225,8 +227,8 @@ export class NetworkManager {
         if (fragInfo.id === this.socket.id && this.game.player) {
           console.log(`YOU FRAGGED A PLAYER! Total frags: ${fragInfo.frags}`);
           
-          // TODO: Add visual/audio feedback for getting a frag
-          // this.game.player.displayFragNotification();
+          // Update or create the frag counter display
+          this.updateFragDisplay(fragInfo.frags);
         }
       }
     });
@@ -450,5 +452,42 @@ export class NetworkManager {
     this.playerModels = {};
     this.players = {};
     this.connected = false;
+  }
+  
+  // Create or update the frag counter display
+  updateFragDisplay(frags) {
+    // Find or create the frag counter element
+    let fragCounter = document.getElementById('frag-counter');
+    
+    if (!fragCounter) {
+      // Create frag counter if it doesn't exist
+      fragCounter = document.createElement('div');
+      fragCounter.id = 'frag-counter';
+      fragCounter.style.position = 'absolute';
+      fragCounter.style.top = '20px';
+      fragCounter.style.right = '20px';
+      fragCounter.style.padding = '10px';
+      fragCounter.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+      fragCounter.style.color = '#ff9900';
+      fragCounter.style.fontFamily = 'Arial, sans-serif';
+      fragCounter.style.fontSize = '24px';
+      fragCounter.style.fontWeight = 'bold';
+      fragCounter.style.borderRadius = '5px';
+      fragCounter.style.zIndex = '1000';
+      fragCounter.style.textShadow = '1px 1px 0 #000';
+      document.body.appendChild(fragCounter);
+    }
+    
+    // Update the content
+    fragCounter.textContent = `FRAGS: ${frags}`;
+    
+    // Animation effect for frag update
+    fragCounter.style.transform = 'scale(1.5)';
+    fragCounter.style.transition = 'transform 0.2s';
+    
+    // Reset scale after animation
+    setTimeout(() => {
+      fragCounter.style.transform = 'scale(1)';
+    }, 200);
   }
 } 
