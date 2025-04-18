@@ -211,6 +211,25 @@ export class NetworkManager {
       // Remove from players object
       delete this.players[playerId];
     });
+    
+    // Frag update (when a player gets a kill)
+    this.socket.on('fragUpdate', (fragInfo) => {
+      console.log(`==== FRAG UPDATE RECEIVED ====`);
+      console.log(`Player ${fragInfo.id} now has ${fragInfo.frags} frags`);
+      
+      // Update frags for the player who got the kill
+      if (this.players[fragInfo.id]) {
+        this.players[fragInfo.id].frags = fragInfo.frags;
+        
+        // If this is our own frag update, display it prominently
+        if (fragInfo.id === this.socket.id && this.game.player) {
+          console.log(`YOU FRAGGED A PLAYER! Total frags: ${fragInfo.frags}`);
+          
+          // TODO: Add visual/audio feedback for getting a frag
+          // this.game.player.displayFragNotification();
+        }
+      }
+    });
   }
   
   // Send player movement update to the server
