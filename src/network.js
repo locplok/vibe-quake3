@@ -30,10 +30,14 @@ export class NetworkManager {
     
     this.log('Connecting to server:', this.serverUrl);
     
-    // Connect to Socket.IO directly or through Vite proxy
+    // Always use the explicit Render URL in production
+    // On Vercel, window.location.hostname is NOT localhost, so we must use the explicit URL
     this.socket = window.location.hostname === 'localhost' 
-      ? io() // Use Vite proxy for local development
-      : io(this.serverUrl); // Use explicit URL for production
+      ? io() // Use Vite proxy for local development only
+      : io('https://vibe-quake3-server.onrender.com:10000', {
+          withCredentials: false,
+          transports: ['websocket', 'polling']
+        }); // Always use explicit URL for production
     
     // Set up event listeners
     this.setupEventListeners();
