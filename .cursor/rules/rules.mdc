@@ -1,0 +1,171 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+1. **Keep Rules Concise and Focused (Under 500 Lines)**  
+   - **Why**: The document emphasizes concise rules to avoid overwhelming the AI model’s context. Short rules are easier to maintain and apply consistently.  
+   - **Guideline**: Write rules that target specific aspects of the game (e.g., movement mechanics, weapon implementation) with clear instructions, ideally under 500 lines.  
+   - **Example**:  
+     ```mdc
+     description: Strafe Jumping Mechanics
+     globs: src/movement/*.js
+     alwaysApply: true
+     ---
+     Implement strafe jumping using Cannon.js:
+     - Increase velocity when combining jump and strafe inputs.
+     - Use `THREE.Vector3` for position updates.
+     - Example: `player.velocity.x += strafeInput * speed * delta`.
+     @movement-template.js
+     ```
+
+2. **Use MDC Format with Clear Metadata**  
+   - **Why**: The document specifies that rules use the MDC format, supporting metadata like `description`, `globs`, and `alwaysApply` to define scope and behavior.  
+   - **Guideline**: Structure each rule file with metadata to clarify its purpose, scope (via glob patterns), and application type (e.g., always applied, auto-attached, or manual).  
+   - **Example**:  
+     ```mdc
+     description: Rocket Launcher Implementation
+     globs: src/weapons/rocket*.js
+     alwaysApply: false
+     ---
+     Define rocket launcher in Three.js:
+     - Use a sphere geometry for the projectile.
+     - Apply splash damage (50 units radius) on impact.
+     - Reference: @rocket-template.js
+     ```
+
+3. **Scope Rules to Specific Codebase Sections**  
+   - **Why**: Project Rules can be scoped using glob patterns to apply only to relevant files, reducing context overload.  
+   - **Guideline**: Use glob patterns to target specific directories or file types (e.g., `src/weapons/*.js` for weapon logic, `src/maps/*.js` for map rendering).  
+   - **Example**:  
+     ```mdc
+     description: Map Rendering Standards
+     globs: src/maps/*.js
+     alwaysApply: true
+     ---
+     Render maps with Three.js:
+     - Use glTF models for modular assets.
+     - Apply baked lightmaps for performance.
+     - Example: `scene.add(gltf.scene)`.
+     @map-template.js
+     ```
+
+4. **Provide Concrete Examples or Referenced Files**  
+   - **Why**: The document advises including examples or referenced files to make rules actionable and clear, especially for complex systems like game mechanics.  
+   - **Guideline**: Include code snippets or reference template files (e.g., `@template.js`) to show expected implementations for game components like weapons or networking.  
+   - **Example**:  
+     ```mdc
+     description: Socket.IO Networking for Player Sync
+     globs: src/network/*.js
+     alwaysApply: false
+     ---
+     Sync player positions with Socket.IO:
+     - Emit `playerUpdate` event every 16ms (60 Hz).
+     - Include position, velocity, and rotation.
+     - Example: `socket.emit('playerUpdate', { pos: player.position })`.
+     @network-template.js
+     ```
+
+5. **Split Large Concepts into Composable Rules**  
+   - **Why**: The document recommends breaking down complex ideas into smaller, reusable rules to improve modularity and maintainability.  
+   - **Guideline**: Create separate rules for distinct systems (e.g., movement, combat, networking, UI) rather than a single monolithic rule.  
+   - **Example**: Instead of one rule for “game mechanics,” split into:  
+     - `movement.mdc` (strafe jumping, bunny hopping).  
+     - `combat.mdc` (weapon damage, hit detection).  
+     - `pickup.mdc` (health, armor, power-ups).
+
+6. **Standardize Coding Style and Architecture**  
+   - **Why**: Project Rules are ideal for enforcing consistent style or architecture decisions across the codebase, as per the document.  
+   - **Guideline**: Define rules to enforce naming conventions, file structure, or architectural patterns (e.g., modular classes for weapons).  
+   - **Example**:  
+     ```mdc
+     description: Weapon Class Structure
+     globs: src/weapons/*.js
+     alwaysApply: true
+     ---
+     Define weapons as ES6 classes:
+     - Use `class Weapon { constructor() {} fire() {} }`.
+     - Name files in snake_case (e.g., `rocket_launcher.js`).
+     - Example: @weapon-template.js
+     ```
+
+7. **Automate Repetitive Workflows**  
+   - **Why**: The document highlights using rules to automate workflows, such as generating boilerplate code.  
+   - **Guideline**: Write rules to provide templates for common tasks, like creating new weapons, maps, or server endpoints.  
+   - **Example**:  
+     ```mdc
+     description: New Weapon Boilerplate
+     globs: src/weapons/*.js
+     alwaysApply: false
+     ---
+     Create a new weapon:
+     - Extend `Weapon` class.
+     - Define `damage`, `fireRate`, and `ammo` properties.
+     - Example: `class Shotgun extends Weapon { constructor() { super(); this.damage = 50; } }`.
+     @weapon-template.js
+     ```
+
+8. **Leverage Agent-Requested Rules for Flexibility**  
+   - **Why**: The document describes Agent-Requested rules, where the AI decides when to apply them based on a description, offering flexibility for situational guidance.  
+   - **Guideline**: Use Agent-Requested rules for optional optimizations or context-specific tasks, ensuring a clear description is provided.  
+   - **Example**:  
+     ```mdc
+     description: Optimize Three.js Scene for Performance
+     globs: src/render/*.js
+     alwaysApply: false
+     ---
+     Optimize Three.js rendering:
+     - Use frustum culling for off-screen objects.
+     - Compress textures to WebP format.
+     - Example: `renderer.setPixelRatio(window.devicePixelRatio * 0.8)`.
+     @optimization-template.js
+     ```
+
+9. **Avoid Vague Guidance**  
+   - **Why**: The document stresses writing rules like clear internal documentation, avoiding ambiguous instructions.  
+   - **Guideline**: Use precise, actionable language and specify exact requirements (e.g., values for damage, timing for animations) rather than general advice like “make it fast.”  
+   - **Example**:  
+     ```mdc
+     description: Power-Up Respawn Timing
+     globs: src/pickups/*.js
+     alwaysApply: true
+     ---
+     Implement power-up respawns:
+     - Respawn Quad Damage every 120 seconds.
+     - Use `setTimeout` for respawn logic.
+     - Example: `setTimeout(() => spawnPowerUp('quad'), 120000)`.
+     @pickup-template.js
+     ```
+
+10. **Reuse Rules for Repeated Prompts**  
+    - **Why**: The document suggests creating rules from prompts you repeat in chat to save time and ensure consistency.  
+    - **Guideline**: Identify common development tasks (e.g., debugging network sync, styling HUD) and convert them into rules for reuse across the project.  
+    - **Example**:  
+      ```mdc
+      description: Debug Socket.IO Connection Issues
+      globs: src/network/*.js
+      alwaysApply: false
+      ---
+      Debug Socket.IO issues:
+      - Log connection events: `socket.on('connect', () => console.log('Connected'))`.
+      - Check for heartbeat timeouts (default: 60s).
+      - Example: @debug-network-template.js
+      ```
+
+---
+
+### How These Guidelines Align with Cursor Rules
+- **Conciseness and Clarity**: Guidelines 1, 9, and 10 follow the document’s advice to keep rules under 500 lines, avoid vague guidance, and reuse prompts, ensuring the AI processes them efficiently.
+- **Modularity**: Guideline 5 (splitting concepts) aligns with the recommendation to create composable rules, improving maintainability.
+- **Scoping and Automation**: Guidelines 3, 7, and 8 leverage glob patterns and rule types (e.g., alwaysApply, Agent-Requested) to scope rules and automate workflows, as described in the document.
+- **Actionable Instructions**: Guidelines 4 and 6 provide concrete examples and enforce standards, mirroring the document’s emphasis on clear, example-driven rules.
+- **MDC Structure**: Guideline 2 ensures proper use of the MDC format, including metadata, as specified in the document.
+
+### Implementation Notes
+- **Storage**: Store these rules in the `.cursor/rules` directory of the project, version-controlled with Git, as recommended.
+- **Creation**: Use `Cmd + Shift + P > New Cursor Rule` in Cursor to create rules quickly, or define them in Cursor Settings > Rules.
+- **Testing**: Verify rules apply correctly by checking glob patterns and rule types (e.g., ensure Auto-Attached rules match file paths).
+- **Migration**: Avoid using the deprecated `.cursorrules` file; stick to Project Rules for better control, as advised.
+
+By following these guidelines, you’ll create a set of Project Rules that guide the AI to generate consistent, high-quality code for the *Quake 3 Arena* remake, streamline development, and enforce standards across the codebase.
