@@ -47,10 +47,14 @@ export class NetworkManager {
   setupEventListeners() {
     if (!this.socket) return;
     
+    console.log("==== SETTING UP SOCKET EVENT LISTENERS ====");
+    
     // Connection established
     this.socket.on('connect', () => {
       this.connected = true;
-      this.log('Connected to server with ID:', this.socket.id);
+      console.log("==== SOCKET CONNECTED ====");
+      console.log("Socket ID:", this.socket.id);
+      console.log("Connected to server:", this.serverUrl);
       
       // IMPORTANT FIX: Set up a timer to sync armor value after connection
       // This ensures server has the correct armor value
@@ -62,22 +66,38 @@ export class NetworkManager {
       }, 1000); // Wait 1 second to ensure player is fully initialized
     });
     
+    // Connection error
+    this.socket.on('connect_error', (error) => {
+      console.error("==== SOCKET CONNECTION ERROR ====");
+      console.error("Error:", error);
+    });
+    
+    // Connection timeout
+    this.socket.on('connect_timeout', (timeout) => {
+      console.error("==== SOCKET CONNECTION TIMEOUT ====");
+      console.error("Timeout:", timeout);
+    });
+    
     // Connection lost
-    this.socket.on('disconnect', () => {
+    this.socket.on('disconnect', (reason) => {
       this.connected = false;
-      this.log('Disconnected from server');
+      console.warn("==== SOCKET DISCONNECTED ====");
+      console.warn("Reason:", reason);
     });
     
     // Receive current players when joining
     this.socket.on('currentPlayers', (players) => {
-      this.log('Received current players:', players);
+      console.log("==== CURRENT PLAYERS RECEIVED ====");
+      console.log("Players:", players);
+      console.log("Player count:", Object.keys(players).length);
       this.players = players;
       this.createPlayerModels();
     });
     
     // New player joined
     this.socket.on('newPlayer', (playerInfo) => {
-      this.log('New player joined:', playerInfo);
+      console.log("==== NEW PLAYER JOINED ====");
+      console.log("Player info:", playerInfo);
       this.players[playerInfo.id] = playerInfo;
       this.createPlayerModel(playerInfo);
     });
