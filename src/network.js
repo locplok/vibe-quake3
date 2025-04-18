@@ -11,7 +11,7 @@ export class NetworkManager {
     // When using Vite proxy, we can just use relative URL for Socket.IO connection
     this.serverUrl = window.location.hostname === 'localhost' 
       ? window.location.origin 
-      : 'https://vibe-quake3-server.onrender.com:10000'; // Using port 10000 on Render
+      : 'https://vibe-quake3-server.onrender.com'; // Using default HTTPS port on Render
     console.log("Using server URL:", this.serverUrl);
     
     // Debug flag for logging network messages
@@ -34,7 +34,7 @@ export class NetworkManager {
     // On Vercel, window.location.hostname is NOT localhost, so we must use the explicit URL
     this.socket = window.location.hostname === 'localhost' 
       ? io() // Use Vite proxy for local development only
-      : io('https://vibe-quake3-server.onrender.com:10000', {
+      : io('https://vibe-quake3-server.onrender.com', {
           withCredentials: false,
           transports: ['websocket', 'polling']
         }); // Always use explicit URL for production
