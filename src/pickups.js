@@ -61,9 +61,13 @@ export class PickupManager {
     this.addPickupLocation(-8, 1, -8, PICKUP_TYPES.HEALTH);
     this.addPickupLocation(8, 1, 8, PICKUP_TYPES.HEALTH);
     
-    // Armor locations
+    // Armor locations - Added more armor pickups around the map
     this.addPickupLocation(0, 1, -10, PICKUP_TYPES.ARMOR);
     this.addPickupLocation(10, 1, 0, PICKUP_TYPES.ARMOR);
+    this.addPickupLocation(-10, 1, 0, PICKUP_TYPES.ARMOR);
+    this.addPickupLocation(0, 1, 0, PICKUP_TYPES.ARMOR); // Center of the map
+    this.addPickupLocation(5, 1, -5, PICKUP_TYPES.ARMOR);
+    this.addPickupLocation(-5, 1, 5, PICKUP_TYPES.ARMOR);
     
     console.log(`Defined ${this.pickupLocations.length} pickup locations`);
     
