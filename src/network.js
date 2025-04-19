@@ -107,9 +107,20 @@ export class NetworkManager {
     // Player moved
     this.socket.on('playerMoved', (playerInfo) => {
       if (this.players[playerInfo.id]) {
+        console.log(`==== PLAYER MOVED EVENT ====`);
+        console.log(`Player ID: ${playerInfo.id}`);
+        console.log(`New position: (${playerInfo.position.x.toFixed(2)}, ${playerInfo.position.y.toFixed(2)}, ${playerInfo.position.z.toFixed(2)})`);
+        console.log(`New rotation: ${playerInfo.rotation.toFixed(2)}`);
+        
+        // Store the updated position and rotation in our players object
         this.players[playerInfo.id].position = playerInfo.position;
         this.players[playerInfo.id].rotation = playerInfo.rotation;
+        
+        // Update the 3D model
         this.updatePlayerModel(playerInfo);
+        
+        console.log(`Model updated: ${this.playerModels[playerInfo.id] ? "YES" : "NO"}`);
+        console.log(`==== MOVEMENT UPDATE COMPLETE ====`);
       }
     });
     
@@ -263,7 +274,8 @@ export class NetworkManager {
         y: position.y,
         z: position.z
       },
-      rotation: rotation
+      rotation: rotation,
+      timestamp: Date.now() // Add timestamp to help with ordering
     });
   }
   
@@ -350,60 +362,166 @@ export class NetworkManager {
     // Skip if model already exists
     if (this.playerModels[playerInfo.id]) return;
     
-    // Create a simple colored capsule for other players
-    const geometry = new THREE.CapsuleGeometry(0.5, 1.2, 4, 8);
+    console.log(`Creating player model for ${playerInfo.id}`);
+    
+    // Create a parent group for the player model and nametag
+    const playerGroup = new THREE.Group();
+    playerGroup.name = 'player-group';
+    
+    // Create a simple colored capsule for other players - making it brighter and larger
+    const geometry = new THREE.CapsuleGeometry(0.6, 1.4, 8, 16); // Larger and more detailed
+    
+    // Generate a consistent color based on player ID
+    const playerIdHash = this.hashCode(playerInfo.id);
+    const color = new THREE.Color(
+      Math.abs(Math.sin(playerIdHash * 0.1) * 0.8 + 0.2),
+      Math.abs(Math.sin(playerIdHash * 0.2) * 0.8 + 0.2),
+      Math.abs(Math.sin(playerIdHash * 0.3) * 0.8 + 0.2)
+    );
+    
     const material = new THREE.MeshStandardMaterial({
-      color: 0xff0000, // Red color for other players
-      roughness: 0.7,
-      metalness: 0.3
+      color: color,
+      roughness: 0.3,
+      metalness: 0.7,
+      emissive: color.clone().multiplyScalar(0.2) // Add slight glow
     });
     
     const model = new THREE.Mesh(geometry, material);
     model.name = 'other-player'; // Add a consistent name for hit detection
+    model.castShadow = true;
+    model.receiveShadow = true;
     
     // Store player ID in the mesh's userData for hit detection
     model.userData = {
       playerId: playerInfo.id
     };
     
+    // Position at the player's location or default to origin
+    if (playerInfo.position) {
+      model.position.y = 1; // Center of capsule at y=1
+    } else {
+      console.warn(`Player ${playerInfo.id} has no position data!`);
+      model.position.y = 1; // Default y position
+    }
+    
+    // Add a visible debug cube to ensure the model is being rendered
+    const debugCube = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.3, 0.3),
+      new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    );
+    debugCube.position.y = 2.5; // Place above the player model
+    model.add(debugCube);
+    
+    // Add model to the group
+    playerGroup.add(model);
+    
+    // Create a floating name tag above the player
+    const nameTag = this.createPlayerNameTag(playerInfo.id.substring(0, 6)); // Use shortened ID
+    nameTag.position.y = 2.8; // Position above player's head
+    playerGroup.add(nameTag);
+    
     console.log(`Created player model with ID ${playerInfo.id} stored in userData`);
     
-    // Position at the player's location
+    // Position the entire group at the player's location
     if (playerInfo.position) {
-      model.position.set(
+      playerGroup.position.set(
         playerInfo.position.x,
-        playerInfo.position.y + 1, // Adjust to match player height
+        playerInfo.position.y,
         playerInfo.position.z
       );
     }
     
     // Add to scene
-    this.game.scene.add(model);
+    this.game.scene.add(playerGroup);
     
-    // Store the model
-    this.playerModels[playerInfo.id] = model;
+    // Store the group reference
+    this.playerModels[playerInfo.id] = playerGroup;
     
     this.log('Created model for player:', playerInfo.id);
   }
   
+  // Helper function to create a floating name tag
+  createPlayerNameTag(name) {
+    // Create canvas for the name tag
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+    
+    // Draw a background
+    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw border
+    context.strokeStyle = 'white';
+    context.lineWidth = 4;
+    context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    
+    // Draw text
+    context.fillStyle = 'white';
+    context.font = 'bold 36px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(name, canvas.width / 2, canvas.height / 2);
+    
+    // Create a texture from the canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    
+    // Create a sprite material using the texture
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true
+    });
+    
+    // Create the sprite
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(1.5, 0.4, 1);
+    
+    return sprite;
+  }
+  
+  // Simple hash function for strings
+  hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  }
+  
   // Update a player model's position and rotation
   updatePlayerModel(playerInfo) {
-    if (!this.playerModels[playerInfo.id]) return;
+    if (!this.playerModels[playerInfo.id]) {
+      console.log(`Model for player ${playerInfo.id} not found, creating it now`);
+      this.createPlayerModel(playerInfo);
+      return;
+    }
     
-    const model = this.playerModels[playerInfo.id];
+    const playerGroup = this.playerModels[playerInfo.id];
     
     // Update position
     if (playerInfo.position) {
-      model.position.set(
+      const oldPos = playerGroup.position.clone();
+      
+      // Set the entire group's position to the updated position
+      playerGroup.position.set(
         playerInfo.position.x,
-        playerInfo.position.y + 1, // Adjust to match player height
+        playerInfo.position.y,
         playerInfo.position.z
       );
+      
+      console.log(`Position updated: (${oldPos.x.toFixed(2)}, ${oldPos.y.toFixed(2)}, ${oldPos.z.toFixed(2)}) → (${playerGroup.position.x.toFixed(2)}, ${playerGroup.position.y.toFixed(2)}, ${playerGroup.position.z.toFixed(2)})`);
     }
     
     // Update rotation (Y-axis only)
     if (playerInfo.rotation !== undefined) {
-      model.rotation.y = playerInfo.rotation;
+      const oldRotation = playerGroup.rotation.y;
+      
+      // Update the entire group's rotation
+      playerGroup.rotation.y = playerInfo.rotation;
+      
+      console.log(`Rotation updated: ${oldRotation.toFixed(2)} → ${playerGroup.rotation.y.toFixed(2)}`);
     }
   }
   

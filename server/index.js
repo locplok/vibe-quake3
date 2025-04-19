@@ -167,9 +167,30 @@ io.on('connection', (socket) => {
   
   // Handle player movement
   socket.on('playerMovement', (movementData) => {
+    console.log(`==== PLAYER MOVEMENT ====`);
+    console.log(`Player ID: ${socket.id}`);
+    console.log(`Position: (${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
+    console.log(`Rotation: ${movementData.rotation.toFixed(2)}`);
+    
+    // Update the player's position and rotation
     players[socket.id].position = movementData.position;
     players[socket.id].rotation = movementData.rotation;
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    
+    // If timestamp is provided, save it to filter outdated updates
+    if (movementData.timestamp) {
+      players[socket.id].lastMoveTime = movementData.timestamp;
+    }
+    
+    // Broadcast the updated position to all other players
+    socket.broadcast.emit('playerMoved', {
+      id: socket.id,
+      position: players[socket.id].position,
+      rotation: players[socket.id].rotation,
+      timestamp: movementData.timestamp || Date.now()
+    });
+    
+    console.log(`Broadcasted movement to ${Object.keys(players).length - 1} other players`);
+    console.log(`==== MOVEMENT PROCESSED ====`);
   });
   
   // Handle player shots

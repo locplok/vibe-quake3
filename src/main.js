@@ -9,6 +9,32 @@ import * as CANNON from 'cannon-es';
 // Scene, camera, and renderer setup
 class Game {
   constructor() {
+    // Game state
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.clock = null;
+    this.deltaTime = 0;
+    this.lastTime = 0;
+    this.player = null;
+    this.physics = null;
+    this.inputHandler = null;
+    this.network = null;
+    this.pickupManager = null;
+    
+    // Network update rate (in seconds)
+    this.networkUpdateRate = 0.05; // Increased from default to 50ms for smoother movement (20 updates per second)
+    this.lastNetworkUpdate = 0;
+    
+    // Initialize the game
+    this.init();
+    
+    // Start the animation loop
+    this.animate();
+  }
+  
+  // Initialize the game
+  init() {
     // Initialize timing
     this.clock = new THREE.Clock();
     this.deltaTime = 0;
@@ -81,10 +107,6 @@ class Game {
     // Connect to server
     this.network.connect();
     
-    // Last position/rotation sent to the server
-    this.lastNetworkUpdate = 0;
-    this.networkUpdateRate = 0.05; // 50ms (20 updates per second)
-    
     // Handle window resize
     window.addEventListener('resize', this.onWindowResize.bind(this), false);
     
@@ -96,10 +118,6 @@ class Game {
     
     // Schedule system verification
     setTimeout(() => this.verifySystemsInitialization(), 2000);
-    
-    // Start animation loop
-    this.lastTime = this.clock.getElapsedTime();
-    this.animate();
     
     console.log('Game initialized with physics, weapons, pickups, and network');
   }
