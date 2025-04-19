@@ -29,9 +29,9 @@ export class Player {
     this.physicsBody = null;
     
     // Movement parameters
-    this.moveSpeed = 20.0; // Doubled from 10.0 to 20.0 for much faster movement
+    this.moveSpeed = 40.0; // Increased from 20.0 to 40.0 for much faster movement (4x original speed)
     this.jumpForce = 300; // Force applied when jumping
-    this.sprintMultiplier = 1.5; // Adjusted to make running 3x faster than original walk speed
+    this.sprintMultiplier = 2.0; // Adjusted to make running 8x faster than original walk speed
     this.rotationSpeed = 2.0;
     
     // Jump tracking
