@@ -139,40 +139,149 @@ class Game {
   addObstacles() {
     if (!this.physics) return;
     
-    // Create some boxes at different positions
-    this.createBox(5, 1, 5, 2, 2, 2, 0xff0000);
-    this.createBox(-5, 0.5, -5, 1, 1, 1, 0x00ff00);
-    this.createBox(0, 0.5, -10, 1, 1, 8, 0x0000ff);
-    this.createBox(8, 1.5, 0, 1, 3, 3, 0xffff00);
+    // Create a border wall to define the arena boundaries
+    // North wall
+    this.createBox(0, 2, -15, 30, 4, 1, 0x888888);
+    // South wall
+    this.createBox(0, 2, 15, 30, 4, 1, 0x888888);
+    // East wall
+    this.createBox(15, 2, 0, 1, 4, 30, 0x888888);
+    // West wall
+    this.createBox(-15, 2, 0, 1, 4, 30, 0x888888);
     
-    // Create a ramp
-    this.createRamp(10, 0.75, 10, 5, 1.5, 5, 0.3, 0xff00ff);
+    // Create various platforms and obstacles spread around the map
+    // Main central structure
+    this.createBox(0, 0.5, 0, 4, 1, 4, 0xcccccc);
+    
+    // Red corner platform with ramp
+    this.createBox(10, 1, 10, 4, 2, 4, 0xff0000);
+    this.createRamp(7, 0.75, 10, 5, 1, 3, 0.3, 0xff5555);
+    
+    // Blue corner tower
+    this.createBox(-10, 1, -10, 3, 2, 3, 0x0000ff);
+    this.createBox(-10, 3, -10, 2, 2, 2, 0x5555ff);
+    this.createBox(-10, 5, -10, 1, 2, 1, 0x8888ff);
+    
+    // Green corner with jumping platforms
+    this.createBox(-10, 0.5, 10, 3, 1, 3, 0x00ff00);
+    this.createBox(-8, 1.5, 8, 1, 1, 1, 0x00ff00);
+    this.createBox(-6, 2.5, 6, 1, 1, 1, 0x00ff00);
+    this.createBox(-4, 3.5, 4, 1, 1, 1, 0x00ff00);
+    
+    // Yellow corner with walls (creates a small maze)
+    this.createBox(10, 1, -10, 4, 2, 4, 0xffff00);
+    this.createBox(8, 1, -8, 1, 2, 3, 0xffff00);
+    this.createBox(12, 1, -8, 1, 2, 3, 0xffff00);
+    this.createBox(10, 1, -6, 3, 2, 1, 0xffff00);
+    
+    // Bridge across the middle
+    this.createBox(0, 1, 0, 12, 0.5, 2, 0xaaaaaa);
+    
+    // Side platforms
+    this.createBox(7, 1.5, 0, 2, 0.5, 2, 0xaa55aa);
+    this.createBox(-7, 1.5, 0, 2, 0.5, 2, 0xaa55aa);
+    this.createBox(0, 1.5, 7, 2, 0.5, 2, 0x55aaaa);
+    this.createBox(0, 1.5, -7, 2, 0.5, 2, 0x55aaaa);
+    
+    // Various ramps around the map
+    this.createRamp(5, 0.75, 5, 3, 1, 3, 0.3, 0xff00ff);
+    this.createRamp(-5, 0.75, -5, 3, 1, 3, -0.3, 0xff00ff);
+    this.createRamp(5, 0.75, -5, 3, 1, 3, 0.3, 0xff00ff);
+    this.createRamp(-5, 0.75, 5, 3, 1, 3, -0.3, 0xff00ff);
+    
+    // Elevated platform with cover
+    this.createBox(0, 2, -3, 4, 0.5, 4, 0x999999);
+    this.createBox(0, 2.75, -5, 4, 1, 0.5, 0x999999); // Cover wall
+    
+    // Create some cover objects
+    this.createBox(3, 0.75, 3, 1, 1.5, 1, 0xaaaaaa);
+    this.createBox(-3, 0.75, -3, 1, 1.5, 1, 0xaaaaaa);
+    this.createBox(3, 0.75, -3, 1, 1.5, 1, 0xaaaaaa);
+    this.createBox(-3, 0.75, 3, 1, 1.5, 1, 0xaaaaaa);
+    
+    // Sniper perch
+    this.createBox(-12, 4, 0, 2, 0.5, 2, 0x996633);
+    
+    // Pillars in various locations
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const radius = 8;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      this.createBox(x, 2, z, 1, 4, 1, 0x888888);
+    }
   }
   
   // Add dynamic objects that can be shot
   addDynamicObjects() {
     if (!this.physics) return;
     
-    // Create a stack of boxes
-    const boxSize = 0.5;
-    const spacing = 0.6;
+    // Create multiple stacks of boxes in different locations
+    const locations = [
+      { x: 0, y: 0.5, z: -5 },
+      { x: 5, y: 0.5, z: 0 },
+      { x: -5, y: 0.5, z: 0 },
+      { x: 0, y: 2.5, z: 0 },
+      { x: 8, y: 0.5, z: 8 },
+      { x: -8, y: 0.5, z: -8 }
+    ];
     
-    for (let y = 0; y < 3; y++) {
-      for (let x = -1; x <= 1; x++) {
-        for (let z = -1; z <= 1; z++) {
-          const posX = x * spacing;
-          const posY = boxSize/2 + y * spacing + 0.5;
-          const posZ = z * spacing - 5;
-          
-          this.createDynamicBox(posX, posY, posZ, boxSize, boxSize, boxSize, 0xaa55aa);
+    // Create a stack of boxes at each location
+    locations.forEach(loc => {
+      const boxSize = 0.5;
+      const spacing = 0.6;
+      
+      for (let y = 0; y < 3; y++) {
+        for (let x = -1; x <= 1; x++) {
+          for (let z = -1; z <= 1; z++) {
+            const posX = loc.x + x * spacing;
+            const posY = loc.y + boxSize/2 + y * spacing;
+            const posZ = loc.z + z * spacing;
+            
+            // Randomize colors slightly
+            const randomColor = 0xaa0000 + Math.floor(Math.random() * 0x55ffff);
+            this.createDynamicBox(posX, posY, posZ, boxSize, boxSize, boxSize, randomColor);
+          }
         }
       }
+    });
+    
+    // Create many spheres across the map
+    for (let i = 0; i < 25; i++) {
+      // Random position within map bounds
+      const x = (Math.random() * 28 - 14);
+      const y = 2 + Math.random() * 3;
+      const z = (Math.random() * 28 - 14);
+      
+      // Random size and color
+      const radius = 0.3 + Math.random() * 0.4;
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      const color = (r << 16) | (g << 8) | b;
+      
+      this.createDynamicSphere(x, y, z, radius, color);
     }
     
-    // Create some spheres
-    this.createDynamicSphere(3, 1, -3, 0.5, 0xff5500);
-    this.createDynamicSphere(-3, 1, 3, 0.5, 0x55ff00);
-    this.createDynamicSphere(0, 4, 0, 1, 0x0055ff);
+    // Create some special large dynamic objects
+    // Large ball on central platform
+    this.createDynamicSphere(0, 4, 0, 1.2, 0xff0000);
+    
+    // Medium balls in corners
+    this.createDynamicSphere(12, 3, 12, 0.8, 0x00ff00);
+    this.createDynamicSphere(-12, 3, 12, 0.8, 0x0000ff);
+    this.createDynamicSphere(12, 3, -12, 0.8, 0xffff00);
+    this.createDynamicSphere(-12, 3, -12, 0.8, 0xff00ff);
+    
+    // Create some special effect dynamic boxes (metallic)
+    for (let i = 0; i < 10; i++) {
+      const x = (Math.random() * 20 - 10);
+      const y = 1 + Math.random() * 3;
+      const z = (Math.random() * 20 - 10);
+      
+      // Create a special metallic box
+      this.createMetallicBox(x, y, z);
+    }
   }
   
   // Create a static box obstacle with physics
@@ -350,6 +459,50 @@ class Game {
     this.physics.linkBodyToMesh(rampBody, ramp, 'ramp');
     
     return { mesh: ramp, body: rampBody };
+  }
+  
+  // Create a special metallic box
+  createMetallicBox(x, y, z) {
+    const size = 0.4 + Math.random() * 0.3;
+    
+    // Create visual mesh
+    const geometry = new THREE.BoxGeometry(size, size, size);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.1,
+      metalness: 1.0,
+      envMapIntensity: 1.0
+    });
+    const box = new THREE.Mesh(geometry, material);
+    box.name = 'MetallicBox';
+    
+    // Position
+    box.position.set(x, y, z);
+    
+    // Enable shadows
+    box.castShadow = true;
+    box.receiveShadow = true;
+    
+    // Add to scene
+    this.scene.add(box);
+    
+    // Create physics body
+    const boxShape = new CANNON.Box(new CANNON.Vec3(size/2, size/2, size/2));
+    const boxBody = new CANNON.Body({
+      mass: 10, // Heavier than normal boxes
+      position: new CANNON.Vec3(x, y, z),
+      shape: boxShape,
+      material: new CANNON.Material({
+        friction: 0.1,
+        restitution: 0.8
+      })
+    });
+    
+    // Add to physics world and link with mesh
+    this.physics.world.addBody(boxBody);
+    this.physics.linkBodyToMesh(boxBody, box, 'dynamic');
+    
+    return { mesh: box, body: boxBody };
   }
   
   // Handle window resize
