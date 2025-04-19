@@ -324,6 +324,130 @@ class Game {
     this.createBox(-15, baseHeight+22.5, -17, 6, 1, 0.5, 0x555555);
     this.createBox(-17, baseHeight+22.5, -15, 0.5, 1, 6, 0x555555);
     this.createBox(-13, baseHeight+22.5, -15, 0.5, 1, 6, 0x555555);
+    
+    // ====== JUMPING PLATFORM SEQUENCES ======
+    
+    // === SEQUENCE 1: Northeast Quadrant Jumping Platforms ===
+    // These platforms create a jumping path from ground level to elevated heights
+    const jumpPlatformColor = 0x88CC99; // Greenish platforms for jumping sequences
+    
+    // Starting point near northeast
+    this.createBox(12, 1, -12, 2, 0.3, 2, jumpPlatformColor);
+    
+    // Sequence going up with progressively higher platforms
+    this.createBox(15, 2, -14, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(18, 3, -12, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(20, 4, -9, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(22, 5, -5, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(24, 6, -2, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(26, 7, 2, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(24, 8, 6, 2, 0.3, 2, jumpPlatformColor);
+    this.createBox(21, 9, 9, 2, 0.3, 2, jumpPlatformColor);
+    
+    // === SEQUENCE 2: Southeast Floating Islands ===
+    // A sequence of floating platforms arranged in a circular pattern
+    const islandColor = 0x99AADD; // Blueish platforms for the floating islands
+    
+    // Central floating island
+    this.createBox(10, 5, 10, 4, 0.4, 4, islandColor);
+    
+    // Surrounding smaller islands in a circular pattern
+    const islandCount = 8;
+    const islandRadius = 8;
+    for (let i = 0; i < islandCount; i++) {
+      const angle = (i / islandCount) * Math.PI * 2;
+      const x = 10 + Math.cos(angle) * islandRadius;
+      const z = 10 + Math.sin(angle) * islandRadius;
+      // Vary heights slightly to make it more interesting
+      const height = 5 + Math.sin(angle * 2) * 1.5;
+      this.createBox(x, height, z, 2.5, 0.4, 2.5, islandColor);
+    }
+    
+    // === SEQUENCE 3: Southwest Ascending Staircase ===
+    // A more structured sequence of platforms forming a staircase pattern
+    const stairColor = 0xDDAA88; // Orangish platforms for the staircase
+    
+    // Starting platform
+    this.createBox(-10, 1, 10, 3, 0.3, 3, stairColor);
+    
+    // Staircase platforms - 10 steps ascending
+    for (let i = 1; i <= 10; i++) {
+      const offset = i * 1.5; // Each step moves diagonally
+      const height = 1 + i * 0.8; // Each step goes higher
+      this.createBox(-10 - offset, height, 10 + offset, 2, 0.3, 2, stairColor);
+    }
+    
+    // === SEQUENCE 4: Northwest Zigzag Path ===
+    // A zigzag path of platforms going upward
+    const zigzagColor = 0xCC88DD; // Purplish platforms for zigzag
+    
+    // Starting point
+    this.createBox(-15, 1, -5, 2, 0.3, 2, zigzagColor);
+    
+    // Zigzag pattern - alternating left and right while ascending
+    for (let i = 1; i <= 8; i++) {
+      const xOffset = (i % 2 === 0) ? -3 : 3; // Alternating left/right
+      const zOffset = -2; // Always moving forward (north)
+      const height = 1 + i * 1.2; // Going higher with each step
+      
+      // Position relative to the previous platform
+      const x = -15 + (xOffset * Math.floor((i + 1) / 2));
+      const z = -5 + (zOffset * i);
+      
+      this.createBox(x, height, z, 2, 0.3, 2, zigzagColor);
+    }
+    
+    // === SEQUENCE 5: Central Jumping Challenge ===
+    // A central sequence of smaller platforms requiring precise jumps
+    const challengeColor = 0xFF5555; // Red platforms for the challenging jumps
+    
+    // Starting platform
+    this.createBox(0, 4, 0, 1.5, 0.3, 1.5, challengeColor);
+    
+    // Create a circular pattern of small platforms around the center
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      // Spiral outward and upward
+      const distance = 2 + (i * 0.5);
+      const height = 4 + (i * 0.4);
+      
+      const x = Math.cos(angle) * distance;
+      const z = Math.sin(angle) * distance;
+      
+      // Smaller platforms for more challenging jumps
+      this.createBox(x, height, z, 1, 0.3, 1, challengeColor);
+    }
+    
+    // === SEQUENCE 6: Western Wall Climbing Challenge ===
+    // Platforms attached to the western wall that go up
+    const wallClimbColor = 0xDDDD55; // Yellow platforms for wall climbing
+    
+    // Starting near the western wall, at ground level
+    this.createBox(-27, 1, 0, 2, 0.3, 2, wallClimbColor);
+    
+    // Create platforms going up along the wall
+    for (let i = 1; i <= 12; i++) {
+      // Alternate between going north and south along the wall
+      const zOffset = (i % 2 === 0) ? 3 : -3;
+      const z = (i % 4 < 2) ? zOffset * Math.ceil(i/2) : zOffset * Math.floor(i/2);
+      
+      const height = 1 + i * 1;
+      this.createBox(-27, height, z, 2, 0.3, 2, wallClimbColor);
+    }
+    
+    // === SEQUENCE 7: Eastern "Floating Bridge" ===
+    // Small floating platforms forming a bridge across a section
+    const bridgeColor = 0x55DDDD; // Cyan platforms for the bridge
+    
+    // Create a bridge of small, closely spaced platforms
+    for (let i = 0; i < 15; i++) {
+      const x = 20;
+      const z = -15 + (i * 2); // From north to south
+      // Slightly wavy height pattern
+      const height = 7 + Math.sin(i * 0.7) * 1;
+      
+      this.createBox(x, height, z, 1.5, 0.3, 1, bridgeColor);
+    }
   }
   
   // Add dynamic objects that can be shot
