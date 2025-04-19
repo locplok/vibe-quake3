@@ -195,11 +195,24 @@ export class Player {
     
     // Set up collision detection for jump capability
     this.physicsBody.addEventListener('collide', (e) => {
-      // Check if collision is with the ground
-      if (e.body === this.physics.groundBody) {
-        this.canJump = true;
+      // Check if collision is with the ground or any static object
+      if (e.body === this.physics.groundBody || e.body.mass === 0) {
+        // Calculate contact normal to ensure we're standing on top of the object
+        const contactNormal = e.contact.ni; // Normal points from body A to body B
+        const upAxis = new CANNON.Vec3(0, 1, 0);
+        
+        // Dot product between contact normal and up vector
+        // If > 0.5, we're hitting something from above (good for jumping)
+        if (contactNormal.dot(upAxis) > 0.5) {
+          this.canJump = true;
+          // Debug help
+          console.log("Can jump set to true - collision with static object");
+        }
       }
     });
+    
+    // Add ray casting for jump detection as a fallback method
+    this.jumpRayLength = this.playerHeight * 0.6; // Slightly more than half height
   }
   
   update(deltaTime) {
@@ -213,6 +226,9 @@ export class Player {
     
     // Handle jump input
     this.handleJump(deltaTime);
+    
+    // Additional ground check using raycasting
+    this.checkGroundContact();
     
     // Handle shooting
     this.handleShooting();
@@ -341,7 +357,21 @@ export class Player {
       // Set jump cooldown and disable jumping until land
       this.canJump = false;
       this.jumpCooldown = 0.3; // 300ms cooldown
+      
+      console.log("JUMP executed with force:", this.jumpForce);
     }
+    
+    // If jump key was just pressed, but we couldn't jump, log the reason
+    if (this.input.keys.jump && !this._lastJumpKeyState) {
+      if (!this.canJump) {
+        console.log("Cannot jump: not in contact with ground");
+      } else if (this.jumpCooldown > 0) {
+        console.log("Cannot jump: cooldown active", this.jumpCooldown.toFixed(2));
+      }
+    }
+    
+    // Track jump key state
+    this._lastJumpKeyState = this.input.keys.jump;
   }
   
   handleShooting() {
@@ -981,5 +1011,30 @@ export class Player {
     console.log(`Test ${Math.abs(this.health - expectedFinalHealth) < 0.1 ? 'PASSED ✅' : 'FAILED ❌'}`);
     
     console.log('\n=== TEST COMPLETE ===');
+  }
+  
+  // New method to check for ground contact using ray casting as a fallback
+  checkGroundContact() {
+    if (!this.physics || !this.physicsBody) return;
+    
+    // Create a downward-pointing ray from the player's position
+    const start = this.physicsBody.position;
+    const end = new CANNON.Vec3(
+      start.x, 
+      start.y - this.jumpRayLength, 
+      start.z
+    );
+    
+    // Perform ray cast
+    const result = new CANNON.RaycastResult();
+    this.physics.world.rayTest(start, end, result);
+    
+    // If the ray hit something, we're on ground
+    if (result.hasHit) {
+      // Only set canJump if we hit a static object and aren't already jumping
+      if (result.body && result.body.mass === 0 && this.physicsBody.velocity.y < 0.1) {
+        this.canJump = true;
+      }
+    }
   }
 } 
