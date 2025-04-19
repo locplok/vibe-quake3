@@ -179,8 +179,19 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Debug counter for position updates per player
+    if (!socket._posUpdateCount) socket._posUpdateCount = 0;
+    socket._posUpdateCount++;
+    
+    // Log movement periodically
+    if (socket._posUpdateCount % 500 === 0) {
+      console.log(`SERVER: Player ${socket.id} has sent ${socket._posUpdateCount} position updates`);
+      console.log(`Current position: (${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
+      console.log(`Current player count: ${Object.keys(players).length}`);
+    }
+    
     // Log movement occasionally to avoid spamming the console
-    if (Math.random() < 0.01) { // Only log ~1% of updates
+    if (Math.random() < 0.001) { // Only log ~0.1% of updates
       console.log(`Player ${socket.id} moved to:`, 
         `(${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
     }
@@ -194,8 +205,21 @@ io.on('connection', (socket) => {
       players[socket.id].position = movementData.position;
       players[socket.id].rotation = movementData.rotation;
       
+      // CRITICAL FIX: Make sure the broadcast includes the player ID!
+      const playerData = {
+        id: socket.id,
+        position: players[socket.id].position,
+        rotation: players[socket.id].rotation
+      };
+      
       // Broadcast the update to all other players
-      socket.broadcast.emit('playerMoved', players[socket.id]);
+      // Log every 1000th broadcast to verify it's happening
+      if (socket._posUpdateCount % 1000 === 0) {
+        console.log(`Broadcasting player movement to ${Object.keys(players).length - 1} other players`);
+        console.log(`Data being broadcast:`, playerData);
+      }
+      
+      socket.broadcast.emit('playerMoved', playerData);
     } else {
       console.error(`Received movement data for non-existent player: ${socket.id}`);
     }

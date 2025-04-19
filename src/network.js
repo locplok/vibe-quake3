@@ -106,6 +106,8 @@ export class NetworkManager {
     
     // Player moved
     this.socket.on('playerMoved', (playerInfo) => {
+      console.log(`🔄 RECEIVED playerMoved event from: ${playerInfo.id}`, playerInfo);
+      
       // Validate the player info
       if (!playerInfo || !playerInfo.id || !playerInfo.position) {
         console.error('Received invalid player movement update:', playerInfo);
@@ -305,6 +307,16 @@ export class NetworkManager {
       this.log('Sending position update:', 
         `(${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`,
         'rotation:', rotation.toFixed(2));
+    }
+    
+    // Debug counter for position updates
+    if (!this._posUpdateCount) this._posUpdateCount = 0;
+    this._posUpdateCount++;
+    
+    // Log every 100 position updates
+    if (this._posUpdateCount % 100 === 0) {
+      console.log(`🔄 SENT ${this._posUpdateCount} position updates so far. Latest:`, 
+        `(${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
     }
     
     // Send the update to the server
