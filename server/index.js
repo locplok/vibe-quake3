@@ -226,7 +226,7 @@ io.on('connection', (socket) => {
   });
   
   // Handle player hits
-  socket.on('playerHit', (hitData) => {
+  socket.on('playerHit', (hitData, acknowledge) => {
     const targetId = hitData.id;
     const damage = Math.round(hitData.damage); // Round damage to integer
     
@@ -236,102 +236,138 @@ io.on('connection', (socket) => {
     console.log(`Damage: ${damage}`);
     console.log(`Target exists: ${!!players[targetId]}`);
     
+    // Acknowledge receipt if the callback exists
+    const sendAcknowledgment = typeof acknowledge === 'function';
+    
     // Verify target exists
-    if (players[targetId]) {
-      // Initialize armor if it doesn't exist (shouldn't happen with explicit init)
-      if (players[targetId].armor === undefined) {
-        players[targetId].armor = 0;
-        console.log(`WARNING: Player ${targetId} had undefined armor, initializing to 0`);
-      }
-      
-      console.log(`\n=== SERVER DAMAGE CALCULATION ===`);
-      console.log(`Player ${targetId} taking ${damage} damage with ${players[targetId].armor} armor`);
-      console.log(`Armor type: ${typeof players[targetId].armor}`);
-      
-      // Calculate damage reduction with armor (80% protection)
-      const armorProtection = 0.8; // 80% damage reduction
-      
-      // Calculate how damage is distributed
-      let healthDamage = damage;
-      let armorDamage = 0;
-      
-      if (players[targetId].armor > 0) {
-        // Calculate ideal damage distribution - 80% to armor, 20% to health
-        const armorDamagePercent = armorProtection; // 80%
-        const healthDamagePercent = 1 - armorProtection; // 20%
-        
-        // Calculate maximum damage that can go to armor
-        const maxArmorDamage = damage * armorDamagePercent;
-        console.log(`- Maximum armor damage (${armorDamagePercent*100}% of total): ${maxArmorDamage.toFixed(2)}`);
-        
-        // Limit by available armor
-        armorDamage = Math.min(players[targetId].armor, maxArmorDamage);
-        console.log(`- Actual armor damage: ${armorDamage.toFixed(2)}`);
-        
-        // Update armor
-        const oldArmor = players[targetId].armor;
-        players[targetId].armor = Math.round(Math.max(0, players[targetId].armor - armorDamage));
-        console.log(`- Armor reduced from ${oldArmor} to ${players[targetId].armor}`);
-        
-        // Calculate health damage (remaining damage goes to health)
-        healthDamage = Math.round(damage - armorDamage); 
-        console.log(`- Final health damage: ${healthDamage.toFixed(2)}`);
-      } else {
-        console.log(`- No armor, full damage (${damage}) goes to health`);
-        // Explicitly set health damage to full damage amount when no armor
-        healthDamage = damage;
-      }
-      
-      // Apply remaining damage to health
-      const oldHealth = players[targetId].health;
-      players[targetId].health = Math.round(Math.max(0, players[targetId].health - healthDamage));
-      
-      // CRITICAL FIX: Ensure health never drops below 1 (unless they would die)
-      // This ensures players don't end up with less than 1 health from multiple hits
-      if (players[targetId].health > 0 && players[targetId].health < 1) {
-        players[targetId].health = 1;
-        console.log(`- Health clamped to minimum value of 1`);
-      }
-      
-      console.log(`- Health reduced from ${oldHealth} to ${players[targetId].health}`);
-      console.log(`=== END CALCULATION ===\n`);
-      
-      // Check if player died
-      if (players[targetId].health <= 0) {
-        // Reset health and respawn
-        players[targetId].health = 100;
-        players[targetId].armor = 0; // Reset armor on death
-        
-        // Get new random spawn position
-        const newSpawnPoint = getRandomSpawnPoint();
-        players[targetId].position = newSpawnPoint;
-        
-        // Notify all players of respawn
-        io.emit('playerRespawned', {
-          id: targetId,
-          position: newSpawnPoint
+    if (!players[targetId]) {
+      console.log(`ERROR: Hit on non-existent player ${targetId}`);
+      if (sendAcknowledgment) {
+        acknowledge({ 
+          success: false, 
+          message: `Target player ${targetId} does not exist` 
         });
       }
+      return;
+    }
+    
+    // Initialize armor if it doesn't exist (shouldn't happen with explicit init)
+    if (players[targetId].armor === undefined) {
+      players[targetId].armor = 0;
+      console.log(`WARNING: Player ${targetId} had undefined armor, initializing to 0`);
+    }
+    
+    console.log(`\n=== SERVER DAMAGE CALCULATION ===`);
+    console.log(`Player ${targetId} taking ${damage} damage with ${players[targetId].armor} armor`);
+    console.log(`Armor type: ${typeof players[targetId].armor}`);
+    
+    // Calculate damage reduction with armor (80% protection)
+    const armorProtection = 0.8; // 80% damage reduction
+    
+    // Calculate how damage is distributed
+    let healthDamage = damage;
+    let armorDamage = 0;
+    
+    if (players[targetId].armor > 0) {
+      // Calculate ideal damage distribution - 80% to armor, 20% to health
+      const armorDamagePercent = armorProtection; // 80%
+      const healthDamagePercent = 1 - armorProtection; // 20%
       
-      // Send health update to all players - ALWAYS include armor value
-      const finalArmorValue = players[targetId].armor !== undefined ? players[targetId].armor : 0;
-      console.log(`Sending health update with armor=${finalArmorValue} (${typeof finalArmorValue})`);
+      // Calculate maximum damage that can go to armor
+      const maxArmorDamage = damage * armorDamagePercent;
+      console.log(`- Maximum armor damage (${armorDamagePercent*100}% of total): ${maxArmorDamage.toFixed(2)}`);
       
-      // CRITICAL FIX: Explicitly create the complete update object with all required properties
-      const healthUpdateObj = {
-        id: targetId,
-        health: players[targetId].health,
-        armor: finalArmorValue
+      // Limit by available armor
+      armorDamage = Math.min(players[targetId].armor, maxArmorDamage);
+      console.log(`- Actual armor damage: ${armorDamage.toFixed(2)}`);
+      
+      // Update armor
+      const oldArmor = players[targetId].armor;
+      players[targetId].armor = Math.round(Math.max(0, players[targetId].armor - armorDamage));
+      console.log(`- Armor reduced from ${oldArmor} to ${players[targetId].armor}`);
+      
+      // Calculate health damage (remaining damage goes to health)
+      healthDamage = Math.round(damage - armorDamage); 
+      console.log(`- Final health damage: ${healthDamage.toFixed(2)}`);
+    } else {
+      console.log(`- No armor, full damage (${damage}) goes to health`);
+      // Explicitly set health damage to full damage amount when no armor
+      healthDamage = damage;
+    }
+    
+    // Apply remaining damage to health
+    const oldHealth = players[targetId].health;
+    players[targetId].health = Math.round(Math.max(0, players[targetId].health - healthDamage));
+    
+    // CRITICAL FIX: Ensure health never drops below 1 (unless they would die)
+    // This ensures players don't end up with less than 1 health from multiple hits
+    if (players[targetId].health > 0 && players[targetId].health < 1) {
+      players[targetId].health = 1;
+      console.log(`- Health clamped to minimum value of 1`);
+    }
+    
+    console.log(`- Health reduced from ${oldHealth} to ${players[targetId].health}`);
+    console.log(`=== END CALCULATION ===\n`);
+    
+    // Check if player died
+    const playerDied = players[targetId].health <= 0;
+    if (playerDied) {
+      // Record death for acknowledgment
+      const deathInfo = {
+        died: true,
+        killedBy: socket.id
       };
       
-      // Log the exact object being sent
-      console.log(`SENDING HEALTH UPDATE: ${JSON.stringify(healthUpdateObj)}`);
+      // Reset health and respawn
+      players[targetId].health = 100;
+      players[targetId].armor = 0; // Reset armor on death
       
-      // Send the complete object
-      io.emit('healthUpdate', healthUpdateObj);
+      // Get new random spawn position
+      const newSpawnPoint = getRandomSpawnPoint();
+      players[targetId].position = newSpawnPoint;
+      
+      // Notify all players of respawn
+      io.emit('playerRespawned', {
+        id: targetId,
+        position: newSpawnPoint
+      });
+      
+      // Send acknowledgment if callback exists
+      if (sendAcknowledgment) {
+        acknowledge({ 
+          success: true, 
+          message: `Hit registered and player ${targetId} died`,
+          death: deathInfo
+        });
+      }
     } else {
-      console.log(`ERROR: Hit on non-existent player ${targetId}`);
+      // Send acknowledgment if callback exists
+      if (sendAcknowledgment) {
+        acknowledge({ 
+          success: true, 
+          message: `Hit registered on player ${targetId}`,
+          newHealth: players[targetId].health,
+          newArmor: players[targetId].armor
+        });
+      }
     }
+    
+    // Send health update to all players - ALWAYS include armor value
+    const finalArmorValue = players[targetId].armor !== undefined ? players[targetId].armor : 0;
+    console.log(`Sending health update with armor=${finalArmorValue} (${typeof finalArmorValue})`);
+    
+    // CRITICAL FIX: Explicitly create the complete update object with all required properties
+    const healthUpdateObj = {
+      id: targetId,
+      health: players[targetId].health,
+      armor: finalArmorValue
+    };
+    
+    // Log the exact object being sent
+    console.log(`SENDING HEALTH UPDATE: ${JSON.stringify(healthUpdateObj)}`);
+    
+    // Send the complete object
+    io.emit('healthUpdate', healthUpdateObj);
   });
   
   // Handle disconnection

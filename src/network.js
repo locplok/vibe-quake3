@@ -298,7 +298,7 @@ export class NetworkManager {
   sendHit(hitPlayerId, damage) {
     if (!this.socket || !this.connected) {
       console.error('Cannot send hit: not connected to server');
-      return;
+      return false;
     }
     
     console.log(`==== SENDING HIT TO SERVER ====`);
@@ -307,28 +307,56 @@ export class NetworkManager {
     
     if (!hitPlayerId) {
       console.error('CRITICAL ERROR: Attempted to send hit with invalid player ID');
-      return;
+      return false;
     }
     
     if (isNaN(damage) || damage <= 0) {
       console.error(`CRITICAL ERROR: Invalid damage value: ${damage}`);
-      return;
+      return false;
     }
     
     this.log('Sending hit to server:', 'player', hitPlayerId, 'with damage', damage);
     
     // Add try-catch to handle any potential errors
     try {
-      this.socket.emit('playerHit', {
+      // Create the hit data object
+      const hitData = {
         id: hitPlayerId,
         damage: damage
+      };
+      
+      // Log the exact data being sent
+      console.log(`Hit data being sent: ${JSON.stringify(hitData)}`);
+      
+      // Add a confirmation callback to verify the message was sent
+      this.socket.emit('playerHit', hitData, (acknowledgment) => {
+        if (acknowledgment && acknowledgment.success) {
+          console.log(`Server acknowledged hit: ${acknowledgment.message}`);
+        } else if (acknowledgment) {
+          console.error(`Server rejected hit: ${acknowledgment.message}`);
+        }
       });
       
       // Send a debug message to confirm the hit was sent
       console.log(`HIT SENT TO SERVER: Player ${hitPlayerId} with ${damage} damage`);
       console.log(`==== HIT EVENT COMPLETE ====`);
+      
+      return true;
     } catch (error) {
       console.error('Error sending hit event:', error);
+      
+      // Try sending with a simpler method as fallback
+      try {
+        this.socket.emit('playerHit', {
+          id: hitPlayerId,
+          damage: damage
+        });
+        console.log(`Hit sent with fallback method`);
+        return true;
+      } catch (fallbackError) {
+        console.error('Fallback hit sending also failed:', fallbackError);
+        return false;
+      }
     }
   }
   

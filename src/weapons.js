@@ -340,14 +340,15 @@ export class WeaponSystem {
     
     // Create a temporary array of meshes to check against
     const playerMeshes = [];
-    const playerIds = [];
+    const playerIds = new Map(); // Use a Map to store the relationship between mesh and player ID
     
     // Gather all player meshes for raycast checking
     for (const playerId in playerModels) {
       if (playerModels[playerId]) {
         console.log(`Adding player ${playerId} to hit detection check`);
-        playerMeshes.push(playerModels[playerId]);
-        playerIds.push(playerId);
+        const playerMesh = playerModels[playerId];
+        playerMeshes.push(playerMesh);
+        playerIds.set(playerMesh, playerId); // Store the mesh->ID relationship
       }
     }
     
@@ -356,38 +357,62 @@ export class WeaponSystem {
       return null;
     }
     
-    // Set up raycaster for player hit detection
+    // Set up raycaster for player hit detection with more detailed options
     const playerRaycaster = new THREE.Raycaster(origin, direction, 0, this.range);
+    
+    // Log detailed raycaster information
+    console.log(`Raycaster origin: (${origin.x.toFixed(2)}, ${origin.y.toFixed(2)}, ${origin.z.toFixed(2)})`);
+    console.log(`Raycaster direction: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
+    console.log(`Raycaster range: ${this.range}`);
     
     // Check for intersections with player models
     const playerIntersects = playerRaycaster.intersectObjects(playerMeshes, false);
+    
+    console.log(`Got ${playerIntersects.length} player intersections`);
     
     if (playerIntersects.length > 0) {
       const hit = playerIntersects[0];
       console.log("Player hit detected! Object:", hit.object.name);
       
-      // Get player ID directly from mesh userData
-      const hitPlayerId = hit.object.userData?.playerId;
+      // Try multiple ways to get the player ID
+      let hitPlayerId = hit.object.userData?.playerId;
+      
+      // If userData doesn't have playerID, try using the Map
+      if (!hitPlayerId) {
+        hitPlayerId = playerIds.get(hit.object);
+        console.log(`Retrieved player ID from Map: ${hitPlayerId}`);
+      }
       
       if (hitPlayerId) {
-        console.log(`Hit player with ID: ${hitPlayerId}`);
+        console.log(`★★★ HIT PLAYER WITH ID: ${hitPlayerId} ★★★`);
         
         // Create impact effect at hit point
         const normal = direction.clone().negate();
         this.createImpactEffect(hit.point, normal);
         
         // IMPORTANT: Always use exact damage amount for consistency
-        // Previously calculated based on distance which led to inconsistent behavior
-        const damage = 25; // Fixed damage value instead of variable
+        const damage = 25; // Fixed damage value
         
         // Send hit information to the network
-        if (window.game.network) {
-          console.log(`★★★ SENDING HIT EVENT ★★★`);
+        if (window.game.network && window.game.network.connected) {
+          console.log(`★★★ SENDING HIT EVENT TO SERVER ★★★`);
           console.log(`Target: Player ${hitPlayerId}`);
           console.log(`Damage: ${damage}`);
-          // This is the critical line that might have been missing in some execution paths
-          window.game.network.sendHit(hitPlayerId, damage);
-          console.log(`★★★ HIT EVENT SENT ★★★`);
+          
+          // CRITICAL: Add retry mechanism for sending hit
+          try {
+            window.game.network.sendHit(hitPlayerId, damage);
+            console.log(`★★★ HIT EVENT SENT SUCCESSFULLY ★★★`);
+          } catch (error) {
+            console.error(`Error sending hit event: ${error}`);
+            // Retry once
+            setTimeout(() => {
+              console.log("Retrying hit event send...");
+              window.game.network.sendHit(hitPlayerId, damage);
+            }, 100);
+          }
+        } else {
+          console.error("CANNOT SEND HIT - NETWORK DISCONNECTED OR UNAVAILABLE");
         }
         
         // Return hit information
