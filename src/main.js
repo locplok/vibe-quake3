@@ -239,6 +239,91 @@ class Game {
     // North-South elevated walkway
     this.createBox(0, 3, 10, 2, 0.5, 12, 0x999999);
     this.createBox(0, 3, -10, 2, 0.5, 12, 0x999999);
+    
+    // ====== NEW ELEVATED PATHWAY SYSTEM ======
+    
+    // Create a spiral ramp system that goes up around the map
+    // Starting point - North section
+    const baseHeight = 1;
+    const rampLength = 8;
+    const rampWidth = 3;
+    const pathWidth = 3;
+    
+    // Base platform for start of elevated path - North
+    this.createBox(0, baseHeight, -25, 6, 0.5, 6, 0x777777);
+    
+    // First ramp going up - North to East
+    this.createRamp(8, baseHeight+1.5, -20, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Platform at first level - East side
+    this.createBox(15, baseHeight+3, -15, 6, 0.5, 6, 0x777777);
+    
+    // Second ramp going up - East to Southeast
+    this.createRamp(18, baseHeight+4.5, -8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Platform at second level - Southeast
+    this.createBox(22, baseHeight+6, 0, 6, 0.5, 6, 0x777777);
+    
+    // Third ramp going up - Southeast to South
+    this.createRamp(18, baseHeight+7.5, 8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Platform at third level - South
+    this.createBox(15, baseHeight+9, 15, 6, 0.5, 6, 0x777777);
+    
+    // Fourth ramp going up - South to Southwest
+    this.createRamp(8, baseHeight+10.5, 18, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Platform at fourth level - Southwest
+    this.createBox(0, baseHeight+12, 22, 6, 0.5, 6, 0x777777);
+    
+    // Fifth ramp going up - Southwest to West
+    this.createRamp(-8, baseHeight+13.5, 18, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Platform at fifth level - West
+    this.createBox(-15, baseHeight+15, 15, 6, 0.5, 6, 0x777777);
+    
+    // Sixth ramp going up - West to Northwest
+    this.createRamp(-18, baseHeight+16.5, 8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Platform at sixth level - Northwest
+    this.createBox(-22, baseHeight+18, 0, 6, 0.5, 6, 0x777777);
+    
+    // Seventh ramp going up - Northwest to North
+    this.createRamp(-18, baseHeight+19.5, -8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
+    
+    // Final platform at top level - North
+    this.createBox(-15, baseHeight+21, -15, 6, 0.5, 6, 0x777777);
+    
+    // ====== CONNECTING BRIDGES BETWEEN SPIRAL LEVELS ======
+    
+    // Connect level 1 to level 3
+    this.createBox(18, baseHeight+3, -7, pathWidth, 0.5, 16, 0x777777);
+    
+    // Connect level 2 to level 4
+    this.createBox(10, baseHeight+6, 18, 14, 0.5, pathWidth, 0x777777);
+    
+    // Connect level 3 to level 5
+    this.createBox(-7, baseHeight+9, 18, 16, 0.5, pathWidth, 0x777777);
+    
+    // Connect level 4 to level 6
+    this.createBox(-18, baseHeight+12, 10, pathWidth, 0.5, 14, 0x777777);
+    
+    // Connect level 5 to level 7
+    this.createBox(-18, baseHeight+15, -7, pathWidth, 0.5, 16, 0x777777);
+    
+    // Connect level 6 to final platform
+    this.createBox(-17, baseHeight+18, -15, 10, 0.5, pathWidth, 0x777777);
+    
+    // Add railings to prevent falling off the elevated paths
+    // North platform railings
+    this.createBox(0, baseHeight+1.5, -27, 6, 1, 0.5, 0x555555);
+    this.createBox(3, baseHeight+1.5, -25, 0.5, 1, 6, 0x555555);
+    this.createBox(-3, baseHeight+1.5, -25, 0.5, 1, 6, 0x555555);
+    
+    // Final platform railings
+    this.createBox(-15, baseHeight+22.5, -17, 6, 1, 0.5, 0x555555);
+    this.createBox(-17, baseHeight+22.5, -15, 0.5, 1, 6, 0x555555);
+    this.createBox(-13, baseHeight+22.5, -15, 0.5, 1, 6, 0x555555);
   }
   
   // Add dynamic objects that can be shot
