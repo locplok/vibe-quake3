@@ -30,7 +30,7 @@ export class Player {
     
     // Movement parameters
     this.moveSpeed = 20.0; // Doubled from 10.0 to 20.0 for much faster movement
-    this.jumpForce = 300; // Force applied when jumping
+    this.jumpForce = 500; // Increased from 300 to 500 for higher jumps to reach mountains
     this.sprintMultiplier = 1.5; // Adjusted to make running 3x faster than original walk speed
     this.rotationSpeed = 2.0;
     

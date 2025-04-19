@@ -106,10 +106,10 @@ class Game {
   
   // Add ground plane to the scene
   addGround() {
-    // Create a large ground plane (100x100 units)
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
+    // Create a larger ground plane (200x200 units)
+    const groundGeometry = new THREE.PlaneGeometry(200, 200);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x555555, // Gray color
+      color: 0x2e7d32, // Forest green color
       roughness: 0.8,
       metalness: 0.2
     });
@@ -137,8 +137,151 @@ class Game {
   
   // Add obstacles to the scene
   addObstacles() {
-    // Removed all obstacles to leave only players and armor pickups
-    console.log("Obstacles removed - arena is now empty except for players and pickups");
+    // Add 3 mountains at different positions
+    this.createMountain(30, 20, -30, 25, 15, 0xff9800);  // Orange mountain 
+    this.createMountain(-40, 25, 40, 30, 20, 0x795548);  // Brown mountain
+    this.createMountain(0, 30, 50, 35, 25, 0x607d8b);    // Blue-grey mountain
+    
+    // Add trees around the world
+    this.addTrees();
+    
+    console.log("Added mountains and trees to create an expansive world");
+  }
+  
+  // Create a mountain using a cone geometry
+  createMountain(x, y, z, radius, height, color) {
+    // Create mountain geometry
+    const mountainGeometry = new THREE.ConeGeometry(radius, height, 8);
+    const mountainMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+    
+    // Position the mountain
+    mountain.position.set(x, y/2, z);
+    
+    // Enable shadows
+    mountain.castShadow = true;
+    mountain.receiveShadow = true;
+    
+    // Add to scene
+    this.scene.add(mountain);
+    
+    // Create physics body for the mountain (simplified as a cylinder)
+    if (this.physics) {
+      const mountainShape = new CANNON.Cylinder(radius, 0, height, 8);
+      const mountainBody = new CANNON.Body({
+        mass: 0, // Static
+        position: new CANNON.Vec3(x, y/2, z),
+        shape: mountainShape,
+        material: new CANNON.Material({
+          friction: 0.6,
+          restitution: 0.3
+        })
+      });
+      
+      // Add to physics world
+      this.physics.world.addBody(mountainBody);
+      this.physics.linkBodyToMesh(mountainBody, mountain, 'mountain');
+    }
+    
+    return mountain;
+  }
+  
+  // Add trees throughout the world
+  addTrees() {
+    // Create trees in a grid pattern
+    for (let x = -80; x <= 80; x += 20) {
+      for (let z = -80; z <= 80; z += 20) {
+        // Add some randomness to positions
+        const offsetX = (Math.random() - 0.5) * 15;
+        const offsetZ = (Math.random() - 0.5) * 15;
+        
+        // Skip some positions randomly for more natural distribution
+        if (Math.random() > 0.7) {
+          this.createTree(x + offsetX, 0, z + offsetZ);
+        }
+      }
+    }
+  }
+  
+  // Create an individual tree
+  createTree(x, y, z) {
+    // Random tree height
+    const trunkHeight = 2 + Math.random() * 3;
+    const trunkRadius = 0.3 + Math.random() * 0.2;
+    const leavesRadius = 1.5 + Math.random() * 1;
+    
+    // Create trunk
+    const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius, trunkHeight, 8);
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b4513, // Brown
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    
+    // Position trunk
+    trunk.position.set(x, y + trunkHeight/2, z);
+    
+    // Create leaves
+    const leavesGeometry = new THREE.SphereGeometry(leavesRadius, 8, 8);
+    const leavesMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2e7d32, // Dark green
+      roughness: 0.8,
+      metalness: 0.1
+    });
+    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+    
+    // Position leaves on top of trunk
+    leaves.position.set(x, y + trunkHeight + leavesRadius/2, z);
+    
+    // Enable shadows
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    leaves.castShadow = true;
+    leaves.receiveShadow = true;
+    
+    // Add to scene
+    this.scene.add(trunk);
+    this.scene.add(leaves);
+    
+    // Create physics bodies for trunk and leaves (simplified)
+    if (this.physics) {
+      // Trunk physics
+      const trunkShape = new CANNON.Cylinder(trunkRadius, trunkRadius, trunkHeight, 8);
+      const trunkBody = new CANNON.Body({
+        mass: 0, // Static
+        position: new CANNON.Vec3(x, y + trunkHeight/2, z),
+        shape: trunkShape,
+        material: new CANNON.Material({
+          friction: 0.8,
+          restitution: 0.2
+        })
+      });
+      
+      // Leaves physics (simplified as sphere)
+      const leavesShape = new CANNON.Sphere(leavesRadius);
+      const leavesBody = new CANNON.Body({
+        mass: 0, // Static
+        position: new CANNON.Vec3(x, y + trunkHeight + leavesRadius/2, z),
+        shape: leavesShape,
+        material: new CANNON.Material({
+          friction: 0.5,
+          restitution: 0.1
+        })
+      });
+      
+      // Add to physics world
+      this.physics.world.addBody(trunkBody);
+      this.physics.world.addBody(leavesBody);
+      this.physics.linkBodyToMesh(trunkBody, trunk, 'tree-trunk');
+      this.physics.linkBodyToMesh(leavesBody, leaves, 'tree-leaves');
+    }
+    
+    return { trunk, leaves };
   }
   
   // Add dynamic objects that can be shot
