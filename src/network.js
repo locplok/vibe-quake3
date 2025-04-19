@@ -106,11 +106,33 @@ export class NetworkManager {
     
     // Player moved
     this.socket.on('playerMoved', (playerInfo) => {
-      if (this.players[playerInfo.id]) {
-        this.players[playerInfo.id].position = playerInfo.position;
-        this.players[playerInfo.id].rotation = playerInfo.rotation;
-        this.updatePlayerModel(playerInfo);
+      // Validate the player info
+      if (!playerInfo || !playerInfo.id || !playerInfo.position) {
+        console.error('Received invalid player movement update:', playerInfo);
+        return;
       }
+      
+      // Check if we know about this player
+      if (!this.players[playerInfo.id]) {
+        console.log(`Received position update for unknown player: ${playerInfo.id}`);
+        // Add the player to our local record - might be a late join
+        this.players[playerInfo.id] = playerInfo;
+        this.createPlayerModel(playerInfo);
+        return;
+      }
+      
+      // Update our record of the player's position and rotation
+      this.players[playerInfo.id].position = playerInfo.position;
+      this.players[playerInfo.id].rotation = playerInfo.rotation;
+      
+      // Log occasional position updates (avoid console spam)
+      if (Math.random() < 0.01) {
+        const pos = playerInfo.position;
+        this.log(`Player ${playerInfo.id} moved to (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+      }
+      
+      // Update the 3D model
+      this.updatePlayerModel(playerInfo);
     });
     
     // Player shot
@@ -255,16 +277,44 @@ export class NetworkManager {
   
   // Send player movement update to the server
   sendMovementUpdate(position, rotation) {
-    if (!this.socket || !this.connected) return;
+    if (!this.socket || !this.connected) {
+      // Silently fail if not connected
+      return false;
+    }
     
-    this.socket.emit('playerMovement', {
+    // Validate position before sending
+    if (!position || typeof position.x !== 'number' || 
+        typeof position.y !== 'number' || 
+        typeof position.z !== 'number') {
+      console.error('Invalid position data:', position);
+      return false;
+    }
+    
+    // Create position update object
+    const movementData = {
       position: {
         x: position.x,
         y: position.y,
         z: position.z
       },
       rotation: rotation
-    });
+    };
+    
+    // Log position update at reduced frequency to avoid console spam
+    if (Math.random() < 0.05) { // Only log ~5% of updates
+      this.log('Sending position update:', 
+        `(${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`,
+        'rotation:', rotation.toFixed(2));
+    }
+    
+    // Send the update to the server
+    try {
+      this.socket.emit('playerMovement', movementData);
+      return true;
+    } catch (error) {
+      console.error('Error sending position update:', error);
+      return false;
+    }
   }
   
   // Send shot information to the server
@@ -416,21 +466,33 @@ export class NetworkManager {
   
   // Update a player model's position and rotation
   updatePlayerModel(playerInfo) {
-    if (!this.playerModels[playerInfo.id]) return;
+    // If we don't have a model for this player, try to create one
+    if (!this.playerModels[playerInfo.id]) {
+      this.createPlayerModel(playerInfo);
+      return;
+    }
     
     const model = this.playerModels[playerInfo.id];
     
     // Update position
     if (playerInfo.position) {
+      // Validate position values
+      const pos = playerInfo.position;
+      if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
+        console.error(`Invalid position values for player ${playerInfo.id}:`, pos);
+        return;
+      }
+      
+      // Update model position - y is offset for the character height
       model.position.set(
-        playerInfo.position.x,
-        playerInfo.position.y + 1, // Adjust to match player height
-        playerInfo.position.z
+        pos.x,
+        pos.y + 1, // Adjust to match player height
+        pos.z
       );
     }
     
     // Update rotation (Y-axis only)
-    if (playerInfo.rotation !== undefined) {
+    if (playerInfo.rotation !== undefined && !isNaN(playerInfo.rotation)) {
       model.rotation.y = playerInfo.rotation;
     }
   }

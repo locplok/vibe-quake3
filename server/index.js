@@ -170,9 +170,35 @@ io.on('connection', (socket) => {
   
   // Handle player movement
   socket.on('playerMovement', (movementData) => {
-    players[socket.id].position = movementData.position;
-    players[socket.id].rotation = movementData.rotation;
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    // Validate data first
+    if (!movementData || !movementData.position || 
+        typeof movementData.position.x !== 'number' || 
+        typeof movementData.position.y !== 'number' || 
+        typeof movementData.position.z !== 'number') {
+      console.error(`Invalid movement data received from player ${socket.id}:`, movementData);
+      return;
+    }
+    
+    // Log movement occasionally to avoid spamming the console
+    if (Math.random() < 0.01) { // Only log ~1% of updates
+      console.log(`Player ${socket.id} moved to:`, 
+        `(${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
+    }
+    
+    // Update the player's data
+    if (players[socket.id]) {
+      // Store the previous position before updating
+      const previousPosition = { ...players[socket.id].position };
+      
+      // Update position and rotation
+      players[socket.id].position = movementData.position;
+      players[socket.id].rotation = movementData.rotation;
+      
+      // Broadcast the update to all other players
+      socket.broadcast.emit('playerMoved', players[socket.id]);
+    } else {
+      console.error(`Received movement data for non-existent player: ${socket.id}`);
+    }
   });
   
   // Handle player shots

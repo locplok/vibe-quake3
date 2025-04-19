@@ -721,8 +721,39 @@ class Game {
       if (this.network && this.network.connected) {
         this.lastNetworkUpdate += this.deltaTime;
         if (this.lastNetworkUpdate >= this.networkUpdateRate) {
-          this.network.sendMovementUpdate(this.player.position, this.player.rotation);
-          this.lastNetworkUpdate = 0;
+          // Validate position first
+          if (this.player.position && 
+              !isNaN(this.player.position.x) && 
+              !isNaN(this.player.position.y) && 
+              !isNaN(this.player.position.z)) {
+            
+            // Send the update and check if it was successful
+            const updateSent = this.network.sendMovementUpdate(
+              this.player.position, 
+              this.player.rotation
+            );
+            
+            // Only reset the timer if the update was successfully sent
+            if (updateSent) {
+              this.lastNetworkUpdate = 0;
+            } 
+            // If update failed but we're still connected, retry sooner
+            else if (this.network.connected) {
+              this.lastNetworkUpdate = this.networkUpdateRate * 0.8; // Try again at 80% of the regular interval
+            }
+          } else {
+            console.error('Invalid player position:', this.player.position);
+            // Try to fix by using last known good position
+            if (this.player.physicsBody && this.player.physicsBody.position) {
+              this.player.position.set(
+                this.player.physicsBody.position.x,
+                this.player.physicsBody.position.y,
+                this.player.physicsBody.position.z
+              );
+              console.log('Reset player position from physics body');
+            }
+            this.lastNetworkUpdate = this.networkUpdateRate * 0.5; // Try again soon
+          }
         }
       }
     }
