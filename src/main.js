@@ -137,6 +137,9 @@ class Game {
   
   // Add obstacles to the scene
   addObstacles() {
+    // Create an array to track occupied positions
+    this.occupiedPositions = [];
+    
     // Add 6 mountains evenly distributed around the map
     this.createMountain(80, 20, 80, 25, 15, 0xff9800);    // Orange mountain (Southeast)
     this.createMountain(-80, 25, 80, 30, 20, 0x795548);   // Brown mountain (Northeast)
@@ -145,14 +148,20 @@ class Game {
     this.createMountain(0, 35, -90, 32, 27, 0x9c27b0);    // Purple mountain (North)
     this.createMountain(0, 28, 90, 30, 22, 0x3f51b5);     // Indigo mountain (South)
     
-    // Add trees around the world
-    this.addTrees();
+    // Add trees around the world (1000 trees)
+    this.addManyTrees(1000);
     
     console.log("Added mountains and trees to create an expansive world");
   }
   
   // Create a mountain using a cone geometry
   createMountain(x, y, z, radius, height, color) {
+    // Check if position is already occupied
+    if (this.isPositionOccupied(x, z, radius)) {
+      console.log(`Cannot place mountain at (${x},${z}) - position occupied`);
+      return null;
+    }
+    
     // Create mountain geometry
     const mountainGeometry = new THREE.ConeGeometry(radius, height, 8);
     const mountainMaterial = new THREE.MeshStandardMaterial({
@@ -190,37 +199,96 @@ class Game {
       this.physics.linkBodyToMesh(mountainBody, mountain, 'mountain');
     }
     
+    // Mark this area as occupied
+    this.markPositionAsOccupied(x, z, radius * 1.2); // Add a buffer around the mountain
+    
     return mountain;
   }
   
-  // Add trees throughout the world
-  addTrees() {
-    // Create trees in a grid pattern
-    for (let x = -80; x <= 80; x += 20) {
-      for (let z = -80; z <= 80; z += 20) {
-        // Add some randomness to positions
-        const offsetX = (Math.random() - 0.5) * 15;
-        const offsetZ = (Math.random() - 0.5) * 15;
+  // Check if a position is too close to existing objects
+  isPositionOccupied(x, z, radius) {
+    if (!this.occupiedPositions) {
+      this.occupiedPositions = [];
+      return false;
+    }
+    
+    for (const pos of this.occupiedPositions) {
+      const dx = pos.x - x;
+      const dz = pos.z - z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+      
+      // If the distance is less than the sum of the radii, there's an overlap
+      if (distance < (pos.radius + radius)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  // Mark a position as occupied
+  markPositionAsOccupied(x, z, radius) {
+    if (!this.occupiedPositions) {
+      this.occupiedPositions = [];
+    }
+    
+    this.occupiedPositions.push({ x, z, radius });
+  }
+  
+  // Add many trees across the map
+  addManyTrees(count) {
+    // Set map bounds, slightly smaller than the actual map to keep trees within boundaries
+    const mapBounds = 95;
+    const minSpacing = 3; // Minimum spacing between trees
+    let treesPlaced = 0;
+    let attempts = 0;
+    const maxAttempts = count * 5; // Limit attempts to prevent infinite loop
+    
+    console.log(`Attempting to place ${count} trees...`);
+    
+    while (treesPlaced < count && attempts < maxAttempts) {
+      attempts++;
+      
+      // Generate random position
+      const x = (Math.random() * 2 - 1) * mapBounds;
+      const z = (Math.random() * 2 - 1) * mapBounds;
+      
+      // Random tree size determines spacing needed
+      const trunkRadius = 0.3 + Math.random() * 0.2;
+      const leavesRadius = 1.5 + Math.random() * 1;
+      const spacing = Math.max(leavesRadius, minSpacing);
+      
+      // Check if position is available
+      if (!this.isPositionOccupied(x, z, spacing)) {
+        this.createTree(x, 0, z, trunkRadius, leavesRadius);
+        this.markPositionAsOccupied(x, z, spacing);
+        treesPlaced++;
         
-        // Skip some positions randomly for more natural distribution
-        if (Math.random() > 0.7) {
-          this.createTree(x + offsetX, 0, z + offsetZ);
+        // Log progress occasionally
+        if (treesPlaced % 100 === 0) {
+          console.log(`Placed ${treesPlaced} trees so far...`);
         }
       }
     }
+    
+    console.log(`Successfully placed ${treesPlaced} trees out of ${count} requested (${attempts} attempts)`);
   }
   
   // Create an individual tree
-  createTree(x, y, z) {
-    // Random tree height
+  createTree(x, y, z, trunkRadius, leavesRadius) {
+    // Add variation to trunk/leaves
     const trunkHeight = 2 + Math.random() * 3;
-    const trunkRadius = 0.3 + Math.random() * 0.2;
-    const leavesRadius = 1.5 + Math.random() * 1;
+    trunkRadius = trunkRadius || (0.3 + Math.random() * 0.2);
+    leavesRadius = leavesRadius || (1.5 + Math.random() * 1);
+    
+    // Small random variation in color
+    const trunkColorHue = 0.07 + Math.random() * 0.04; // ~0.07-0.11 (brown hues)
+    const leavesColorHue = 0.3 + Math.random() * 0.1; // ~0.3-0.4 (green hues)
     
     // Create trunk
     const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius, trunkHeight, 8);
     const trunkMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8b4513, // Brown
+      color: new THREE.Color().setHSL(trunkColorHue, 0.5, 0.3), // Brown variations
       roughness: 0.9,
       metalness: 0.1
     });
@@ -232,7 +300,7 @@ class Game {
     // Create leaves
     const leavesGeometry = new THREE.SphereGeometry(leavesRadius, 8, 8);
     const leavesMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2e7d32, // Dark green
+      color: new THREE.Color().setHSL(leavesColorHue, 0.7, 0.4), // Green variations
       roughness: 0.8,
       metalness: 0.1
     });
