@@ -174,13 +174,8 @@ export class Player {
     // Link the physics body to the model
     this.physics.linkBodyToMesh(this.physicsBody, this.model, 'player');
     
-    // Set up collision detection for jump capability
-    this.physicsBody.addEventListener('collide', (e) => {
-      // Check if collision is with the ground
-      if (e.body === this.physics.groundBody) {
-        this.canJump = true;
-      }
-    });
+    // Note: mountain-specific collision detection is now handled in the physics class
+    // We'll use the physicsBody.canJump property that's set there
   }
   
   update(deltaTime) {
@@ -314,14 +309,20 @@ export class Player {
     if (!this.input || !this.physicsBody) return;
     
     // Check if jump key is pressed and we can jump
-    if (this.input.keys.jump && this.canJump && this.jumpCooldown <= 0) {
+    // Now using the physicsBody.canJump property set by collision detection
+    if (this.input.keys.jump && this.physicsBody.canJump && this.jumpCooldown <= 0) {
       // Apply upward impulse
       const jumpImpulse = new CANNON.Vec3(0, this.jumpForce, 0);
       this.physicsBody.applyImpulse(jumpImpulse);
       
       // Set jump cooldown and disable jumping until land
-      this.canJump = false;
+      this.physicsBody.canJump = false;
       this.jumpCooldown = 0.3; // 300ms cooldown
+      
+      console.log("Player jumped from position:", 
+        this.physicsBody.position.x.toFixed(2),
+        this.physicsBody.position.y.toFixed(2), 
+        this.physicsBody.position.z.toFixed(2));
     }
   }
   

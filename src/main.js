@@ -163,7 +163,7 @@ class Game {
     }
     
     // Create mountain geometry
-    const mountainGeometry = new THREE.ConeGeometry(radius, height, 8);
+    const mountainGeometry = new THREE.ConeGeometry(radius, height, 16); // Increased segments for smoother surface
     const mountainMaterial = new THREE.MeshStandardMaterial({
       color: color,
       roughness: 0.9,
@@ -181,22 +181,50 @@ class Game {
     // Add to scene
     this.scene.add(mountain);
     
-    // Create physics body for the mountain (simplified as a cylinder)
+    // Create physics body for the mountain
     if (this.physics) {
-      const mountainShape = new CANNON.Cylinder(radius, 0, height, 8);
+      // Create a custom mountain material with higher friction
+      const mountainMaterial = new CANNON.Material('mountainMaterial');
+      
+      // Define a contact material between player and mountain (for better traction)
+      if (!this.physics.world.getContactMaterial(this.physics.playerMaterial, mountainMaterial)) {
+        const playerMountainContact = new CANNON.ContactMaterial(
+          this.physics.playerMaterial,
+          mountainMaterial,
+          {
+            friction: 0.9,         // High friction for better climbing
+            restitution: 0.1,      // Low bounce
+            contactEquationStiffness: 1e8,        // Firmer contact
+            contactEquationRelaxation: 3          // Stable contact
+          }
+        );
+        
+        // Add the contact material to the world
+        this.physics.world.addContactMaterial(playerMountainContact);
+      }
+      
+      // Create mountain shape as a cylinder with tapering
+      const mountainShape = new CANNON.Cylinder(radius * 0.05, radius, height, 16);
+      
+      // Create mountain physics body
       const mountainBody = new CANNON.Body({
         mass: 0, // Static
         position: new CANNON.Vec3(x, height/2, z),
         shape: mountainShape,
-        material: new CANNON.Material({
-          friction: 0.6,
-          restitution: 0.3
-        })
+        material: mountainMaterial,
+        collisionFilterGroup: 1,  // Mountain collision group
+        collisionFilterMask: -1   // Collide with everything
       });
       
-      // Add to physics world
+      // Add mountain physics to world
       this.physics.world.addBody(mountainBody);
       this.physics.linkBodyToMesh(mountainBody, mountain, 'mountain');
+      
+      // Store reference to the mountain
+      if (!this.physics.mountains) {
+        this.physics.mountains = [];
+      }
+      this.physics.mountains.push(mountainBody);
     }
     
     // Mark this area as occupied

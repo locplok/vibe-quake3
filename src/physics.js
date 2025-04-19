@@ -13,13 +13,31 @@ export class PhysicsWorld {
     this.world.defaultContactMaterial.friction = 0.1;
     this.world.defaultContactMaterial.restitution = 0.3;
     
+    // Define materials for different objects
+    this.groundMaterial = new CANNON.Material('groundMaterial');
+    this.playerMaterial = new CANNON.Material('playerMaterial');
+    
+    // Create contact material between player and ground
+    const playerGroundContact = new CANNON.ContactMaterial(
+      this.playerMaterial, 
+      this.groundMaterial, 
+      {
+        friction: 0.4,
+        restitution: 0.1
+      }
+    );
+    
+    // Add the contact material to the world
+    this.world.addContactMaterial(playerGroundContact);
+    
     // Collection to track bodies
     this.bodies = [];
+    this.mountains = [];
     
     // Set up ground
     this.groundBody = null;
     
-    console.log('Physics world initialized');
+    console.log('Physics world initialized with materials and contacts');
   }
   
   createGround() {
@@ -29,10 +47,9 @@ export class PhysicsWorld {
       mass: 0, // 0 = static
       type: CANNON.Body.STATIC,
       shape: groundShape,
-      material: new CANNON.Material({
-        friction: 0.3,
-        restitution: 0.3
-      })
+      material: this.groundMaterial,
+      collisionFilterGroup: 1, // Ground group
+      collisionFilterMask: -1  // Collide with everything
     });
     
     // Rotate to be horizontal (facing up)
@@ -62,13 +79,15 @@ export class PhysicsWorld {
       mass: 50, // Reduced from 70 to 50 for better acceleration
       position: new CANNON.Vec3(position.x, position.y, position.z),
       shape: playerShape,
-      material: new CANNON.Material({
-        friction: 0.05, // Reduced friction for smoother movement
-        restitution: 0.0
-      }),
+      material: this.playerMaterial,
+      collisionFilterGroup: 2, // Player group
+      collisionFilterMask: -1, // Collide with everything
       linearDamping: 0.6, // Reduced from 0.9 for less air resistance (faster movement)
       angularDamping: 0.9 // Prevent excessive rotation
     });
+    
+    // Set player properties on the body for easier identification in collisions
+    playerBody.isPlayer = true;
     
     // Add to world
     this.world.addBody(playerBody);
@@ -76,6 +95,27 @@ export class PhysicsWorld {
       body: playerBody,
       mesh: null,
       type: 'player'
+    });
+    
+    // Setup for jump detection - we'll use this to check collisions against mountains
+    playerBody.addEventListener('collide', (e) => {
+      // Check if collision is with ground or a mountain
+      if ((e.body === this.groundBody) || this.mountains.includes(e.body)) {
+        // Check if the contact normal is pointing upward (we're standing on it)
+        if (e.contact && e.contact.ni) {
+          // Dot product of normal and up vector
+          const normalY = e.contact.ni.y;
+          
+          // If normal is pointing somewhat up (allowing for slopes)
+          if (normalY > 0.5) {
+            // Set property on the body that can be checked by the player class
+            playerBody.canJump = true;
+          }
+        } else {
+          // Fallback if normal information isn't available
+          playerBody.canJump = true;
+        }
+      }
     });
     
     return playerBody;
