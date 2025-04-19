@@ -527,6 +527,60 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
+### Step 26: Comprehensive Mobile Device Support
+
+#### 26.1: Mobile Detection and Responsive Design
+- Implement viewport meta tags for proper scaling: `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">`
+- Create device detection using User-Agent or feature detection to identify mobile browsers
+- Add orientation handling (landscape required/preferred) with appropriate UI for each orientation
+- Implement responsive canvas scaling to maintain aspect ratio while maximizing screen usage
+- Add device capability detection for hardware features (gyroscope, accelerometer)
+
+**Test:** Load the game on different mobile devices; it should correctly detect the device type and apply appropriate settings.
+
+#### 26.2: Touch Control System
+- Develop left-side virtual joystick for movement (WASD equivalent)
+- Create right-side look area for camera control with adjustable sensitivity
+- Implement tap-to-shoot with configurable auto-fire for continuous shooting
+- Add dedicated touch buttons for jumping, weapon switching, and reloading
+- Create gesture support for common actions (swipe to switch weapons, double-tap to jump)
+- Implement haptic feedback for actions where supported by device
+
+**Test:** Control the player using touch inputs; movement should be smooth and precise. Aiming and shooting should feel responsive and accurate.
+
+#### 26.3: Mobile-Specific UI Adaptations
+- Design larger UI elements with adequate touch areas (minimum 44×44px targets)
+- Create heads-up display that scales appropriately for different screen sizes
+- Implement collapsible/expandable controls to maximize gameplay view
+- Adjust health, armor, and ammo indicators for better visibility on small screens
+- Create transparent controls that don't obstruct critical gameplay areas
+- Add control customization options (size, position, opacity)
+
+**Test:** All UI elements should be clearly visible and easily touchable on devices with 4.7" screens and larger.
+
+#### 26.4: Mobile Performance Optimizations
+- Implement dynamic resolution scaling based on device performance
+- Create mobile-specific graphics presets (low, medium, high)
+- Reduce particle count and effect complexity on mobile
+- Optimize shadows and lighting for mobile GPUs
+- Implement texture compression formats specifically for mobile (ASTC, ETC2)
+- Add frame rate caps and throttling options to conserve battery
+- Create simplified physics calculations for low-end devices
+
+**Test:** The game should maintain at least 30fps on mid-range mobile devices. Battery consumption should be reasonable for extended play sessions.
+
+#### 26.5: Mobile Network Considerations
+- Implement more aggressive client-side prediction for higher latency connections
+- Add connection quality indicator with adaptive network settings
+- Optimize network packet size for mobile data usage
+- Implement reconnection handling for unstable mobile connections
+- Create offline practice mode for when connection is unavailable
+- Add bandwidth usage settings to accommodate limited data plans
+
+**Test:** Play over mobile data connection; the game should handle variable connection quality gracefully and reconnect automatically after signal loss.
+
+---
+
 ### Step 27: Advanced Visual Effects
 - Add particle systems for impacts, explosions, and environmental effects.
 - Implement dynamic lighting for weapon fire, explosions, and environment.
