@@ -177,6 +177,79 @@ class Game {
     this.createBox(24, 1, -16, 2, 2, 6, 0xffff00);
     this.createBox(20, 1, -12, 6, 2, 2, 0xffff00);
     
+    // ADD MULTI-LEVEL ASCENDING PATH - a spiral staircase-like structure with ramps
+    // We'll start in the Northeast quadrant and create a winding path that goes up
+    
+    // Define the color scheme for our ascending path
+    const pathBaseColor = 0xA67B5B; // Brownish base
+    const pathRampColor = 0xBF8969; // Lighter brown for ramps
+    const pathAccentColor = 0x8D6E63; // Darker brown for accents
+    const railingColor = 0x795548; // Dark brown for railings
+    
+    // Starting platform (Ground level, story 0)
+    this.createBox(15, 0.5, 15, 6, 1, 6, pathBaseColor);
+    
+    // First ramp - Going west (Ground to story 1, height ~2.5)
+    this.createRamp(9, 1.25, 15, 10, 1, 4, 0.3, pathRampColor);
+    
+    // First landing platform (Story 1, height ~2.5)
+    this.createBox(3, 2.5, 15, 4, 1, 6, pathBaseColor);
+    // Add railing to prevent falling
+    this.createBox(3, 3.25, 18, 4, 1, 0.5, railingColor);
+    
+    // Second ramp - Going north (Story 1 to 2, height ~5)
+    this.createRamp(3, 3.75, 10, 4, 1, 10, 0.3, pathRampColor);
+    
+    // Second landing platform (Story 2, height ~5)
+    this.createBox(3, 5, 5, 4, 1, 4, pathBaseColor);
+    // Add railings to prevent falling
+    this.createBox(1, 5.75, 5, 0.5, 1, 4, railingColor);
+    this.createBox(3, 5.75, 3, 4, 1, 0.5, railingColor);
+    
+    // Third ramp - Going east (Story 2 to 3, height ~7.5)
+    this.createRamp(9, 6.25, 5, 10, 1, 4, 0.3, pathRampColor);
+    
+    // Third landing platform (Story 3, height ~7.5)
+    this.createBox(15, 7.5, 5, 4, 1, 4, pathBaseColor);
+    // Add railings to prevent falling
+    this.createBox(17, 8.25, 5, 0.5, 1, 4, railingColor);
+    this.createBox(15, 8.25, 7, 4, 1, 0.5, railingColor);
+    
+    // Fourth ramp - Going south (Story 3 to 4, height ~10)
+    this.createRamp(15, 8.75, 11, 4, 1, 10, 0.3, pathRampColor);
+    
+    // Fourth landing platform (Story 4, height ~10)
+    this.createBox(15, 10, 16, 4, 1, 4, pathBaseColor);
+    // Add railings to prevent falling
+    this.createBox(17, 10.75, 16, 0.5, 1, 4, railingColor);
+    this.createBox(15, 10.75, 18, 4, 1, 0.5, railingColor);
+    this.createBox(13, 10.75, 16, 0.5, 1, 4, railingColor);
+    
+    // Fifth ramp - Going west (Story 4 to 5, height ~12.5)
+    this.createRamp(9, 11.25, 16, 10, 1, 4, 0.3, pathRampColor);
+    
+    // Fifth landing platform (Story 5, height ~12.5)
+    this.createBox(3, 12.5, 16, 4, 1, 4, pathBaseColor);
+    // Add railings to prevent falling
+    this.createBox(1, 13.25, 16, 0.5, 1, 4, railingColor);
+    this.createBox(3, 13.25, 18, 4, 1, 0.5, railingColor);
+    this.createBox(5, 13.25, 16, 0.5, 1, 4, railingColor);
+    
+    // Sixth ramp - Going north (Story 5 to 6, height ~15)
+    this.createRamp(3, 13.75, 11, 4, 1, 10, 0.3, pathRampColor);
+    
+    // Final platform (Story 6, height ~15) - observation deck
+    this.createBox(3, 15, 5, 8, 1, 8, pathBaseColor);
+    // Add railings all around for safety
+    this.createBox(3, 15.75, 1, 8, 1, 0.5, railingColor);
+    this.createBox(3, 15.75, 9, 8, 1, 0.5, railingColor);
+    this.createBox(-1, 15.75, 5, 0.5, 1, 8, railingColor);
+    this.createBox(7, 15.75, 5, 0.5, 1, 8, railingColor);
+    
+    // Add small cover structure at the top for tactical advantage
+    this.createBox(3, 16, 5, 4, 0.5, 4, pathAccentColor);
+    this.createBox(3, 17, 7, 4, 2, 0.5, pathAccentColor);
+    
     // Bridge across the middle - extended
     this.createBox(0, 1, 0, 24, 0.5, 4, 0xaaaaaa);
     this.createBox(0, 1, 0, 4, 0.5, 24, 0xaaaaaa);
@@ -239,215 +312,6 @@ class Game {
     // North-South elevated walkway
     this.createBox(0, 3, 10, 2, 0.5, 12, 0x999999);
     this.createBox(0, 3, -10, 2, 0.5, 12, 0x999999);
-    
-    // ====== NEW ELEVATED PATHWAY SYSTEM ======
-    
-    // Create a spiral ramp system that goes up around the map
-    // Starting point - North section
-    const baseHeight = 1;
-    const rampLength = 8;
-    const rampWidth = 3;
-    const pathWidth = 3;
-    
-    // Base platform for start of elevated path - North
-    this.createBox(0, baseHeight, -25, 6, 0.5, 6, 0x777777);
-    
-    // First ramp going up - North to East
-    this.createRamp(8, baseHeight+1.5, -20, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Platform at first level - East side
-    this.createBox(15, baseHeight+3, -15, 6, 0.5, 6, 0x777777);
-    
-    // Second ramp going up - East to Southeast
-    this.createRamp(18, baseHeight+4.5, -8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Platform at second level - Southeast
-    this.createBox(22, baseHeight+6, 0, 6, 0.5, 6, 0x777777);
-    
-    // Third ramp going up - Southeast to South
-    this.createRamp(18, baseHeight+7.5, 8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Platform at third level - South
-    this.createBox(15, baseHeight+9, 15, 6, 0.5, 6, 0x777777);
-    
-    // Fourth ramp going up - South to Southwest
-    this.createRamp(8, baseHeight+10.5, 18, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Platform at fourth level - Southwest
-    this.createBox(0, baseHeight+12, 22, 6, 0.5, 6, 0x777777);
-    
-    // Fifth ramp going up - Southwest to West
-    this.createRamp(-8, baseHeight+13.5, 18, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Platform at fifth level - West
-    this.createBox(-15, baseHeight+15, 15, 6, 0.5, 6, 0x777777);
-    
-    // Sixth ramp going up - West to Northwest
-    this.createRamp(-18, baseHeight+16.5, 8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Platform at sixth level - Northwest
-    this.createBox(-22, baseHeight+18, 0, 6, 0.5, 6, 0x777777);
-    
-    // Seventh ramp going up - Northwest to North
-    this.createRamp(-18, baseHeight+19.5, -8, rampLength, 0.5, rampWidth, 0.3, 0x777777);
-    
-    // Final platform at top level - North
-    this.createBox(-15, baseHeight+21, -15, 6, 0.5, 6, 0x777777);
-    
-    // ====== CONNECTING BRIDGES BETWEEN SPIRAL LEVELS ======
-    
-    // Connect level 1 to level 3
-    this.createBox(18, baseHeight+3, -7, pathWidth, 0.5, 16, 0x777777);
-    
-    // Connect level 2 to level 4
-    this.createBox(10, baseHeight+6, 18, 14, 0.5, pathWidth, 0x777777);
-    
-    // Connect level 3 to level 5
-    this.createBox(-7, baseHeight+9, 18, 16, 0.5, pathWidth, 0x777777);
-    
-    // Connect level 4 to level 6
-    this.createBox(-18, baseHeight+12, 10, pathWidth, 0.5, 14, 0x777777);
-    
-    // Connect level 5 to level 7
-    this.createBox(-18, baseHeight+15, -7, pathWidth, 0.5, 16, 0x777777);
-    
-    // Connect level 6 to final platform
-    this.createBox(-17, baseHeight+18, -15, 10, 0.5, pathWidth, 0x777777);
-    
-    // Add railings to prevent falling off the elevated paths
-    // North platform railings
-    this.createBox(0, baseHeight+1.5, -27, 6, 1, 0.5, 0x555555);
-    this.createBox(3, baseHeight+1.5, -25, 0.5, 1, 6, 0x555555);
-    this.createBox(-3, baseHeight+1.5, -25, 0.5, 1, 6, 0x555555);
-    
-    // Final platform railings
-    this.createBox(-15, baseHeight+22.5, -17, 6, 1, 0.5, 0x555555);
-    this.createBox(-17, baseHeight+22.5, -15, 0.5, 1, 6, 0x555555);
-    this.createBox(-13, baseHeight+22.5, -15, 0.5, 1, 6, 0x555555);
-    
-    // ====== JUMPING PLATFORM SEQUENCES ======
-    
-    // === SEQUENCE 1: Northeast Quadrant Jumping Platforms ===
-    // These platforms create a jumping path from ground level to elevated heights
-    const jumpPlatformColor = 0x88CC99; // Greenish platforms for jumping sequences
-    
-    // Starting point near northeast
-    this.createBox(12, 1, -12, 2, 0.3, 2, jumpPlatformColor);
-    
-    // Sequence going up with progressively higher platforms
-    this.createBox(15, 2, -14, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(18, 3, -12, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(20, 4, -9, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(22, 5, -5, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(24, 6, -2, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(26, 7, 2, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(24, 8, 6, 2, 0.3, 2, jumpPlatformColor);
-    this.createBox(21, 9, 9, 2, 0.3, 2, jumpPlatformColor);
-    
-    // === SEQUENCE 2: Southeast Floating Islands ===
-    // A sequence of floating platforms arranged in a circular pattern
-    const islandColor = 0x99AADD; // Blueish platforms for the floating islands
-    
-    // Central floating island
-    this.createBox(10, 5, 10, 4, 0.4, 4, islandColor);
-    
-    // Surrounding smaller islands in a circular pattern
-    const islandCount = 8;
-    const islandRadius = 8;
-    for (let i = 0; i < islandCount; i++) {
-      const angle = (i / islandCount) * Math.PI * 2;
-      const x = 10 + Math.cos(angle) * islandRadius;
-      const z = 10 + Math.sin(angle) * islandRadius;
-      // Vary heights slightly to make it more interesting
-      const height = 5 + Math.sin(angle * 2) * 1.5;
-      this.createBox(x, height, z, 2.5, 0.4, 2.5, islandColor);
-    }
-    
-    // === SEQUENCE 3: Southwest Ascending Staircase ===
-    // A more structured sequence of platforms forming a staircase pattern
-    const stairColor = 0xDDAA88; // Orangish platforms for the staircase
-    
-    // Starting platform
-    this.createBox(-10, 1, 10, 3, 0.3, 3, stairColor);
-    
-    // Staircase platforms - 10 steps ascending
-    for (let i = 1; i <= 10; i++) {
-      const offset = i * 1.5; // Each step moves diagonally
-      const height = 1 + i * 0.8; // Each step goes higher
-      this.createBox(-10 - offset, height, 10 + offset, 2, 0.3, 2, stairColor);
-    }
-    
-    // === SEQUENCE 4: Northwest Zigzag Path ===
-    // A zigzag path of platforms going upward
-    const zigzagColor = 0xCC88DD; // Purplish platforms for zigzag
-    
-    // Starting point
-    this.createBox(-15, 1, -5, 2, 0.3, 2, zigzagColor);
-    
-    // Zigzag pattern - alternating left and right while ascending
-    for (let i = 1; i <= 8; i++) {
-      const xOffset = (i % 2 === 0) ? -3 : 3; // Alternating left/right
-      const zOffset = -2; // Always moving forward (north)
-      const height = 1 + i * 1.2; // Going higher with each step
-      
-      // Position relative to the previous platform
-      const x = -15 + (xOffset * Math.floor((i + 1) / 2));
-      const z = -5 + (zOffset * i);
-      
-      this.createBox(x, height, z, 2, 0.3, 2, zigzagColor);
-    }
-    
-    // === SEQUENCE 5: Central Jumping Challenge ===
-    // A central sequence of smaller platforms requiring precise jumps
-    const challengeColor = 0xFF5555; // Red platforms for the challenging jumps
-    
-    // Starting platform
-    this.createBox(0, 4, 0, 1.5, 0.3, 1.5, challengeColor);
-    
-    // Create a circular pattern of small platforms around the center
-    for (let i = 0; i < 12; i++) {
-      const angle = (i / 12) * Math.PI * 2;
-      // Spiral outward and upward
-      const distance = 2 + (i * 0.5);
-      const height = 4 + (i * 0.4);
-      
-      const x = Math.cos(angle) * distance;
-      const z = Math.sin(angle) * distance;
-      
-      // Smaller platforms for more challenging jumps
-      this.createBox(x, height, z, 1, 0.3, 1, challengeColor);
-    }
-    
-    // === SEQUENCE 6: Western Wall Climbing Challenge ===
-    // Platforms attached to the western wall that go up
-    const wallClimbColor = 0xDDDD55; // Yellow platforms for wall climbing
-    
-    // Starting near the western wall, at ground level
-    this.createBox(-27, 1, 0, 2, 0.3, 2, wallClimbColor);
-    
-    // Create platforms going up along the wall
-    for (let i = 1; i <= 12; i++) {
-      // Alternate between going north and south along the wall
-      const zOffset = (i % 2 === 0) ? 3 : -3;
-      const z = (i % 4 < 2) ? zOffset * Math.ceil(i/2) : zOffset * Math.floor(i/2);
-      
-      const height = 1 + i * 1;
-      this.createBox(-27, height, z, 2, 0.3, 2, wallClimbColor);
-    }
-    
-    // === SEQUENCE 7: Eastern "Floating Bridge" ===
-    // Small floating platforms forming a bridge across a section
-    const bridgeColor = 0x55DDDD; // Cyan platforms for the bridge
-    
-    // Create a bridge of small, closely spaced platforms
-    for (let i = 0; i < 15; i++) {
-      const x = 20;
-      const z = -15 + (i * 2); // From north to south
-      // Slightly wavy height pattern
-      const height = 7 + Math.sin(i * 0.7) * 1;
-      
-      this.createBox(x, height, z, 1.5, 0.3, 1, bridgeColor);
-    }
   }
   
   // Add dynamic objects that can be shot
