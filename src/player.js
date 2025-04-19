@@ -4,23 +4,15 @@ import { WeaponSystem } from './weapons.js';
 
 // Define spawn points around the map
 const SPAWN_POINTS = [
-  { x: 0, y: 1, z: 0 },       // Center
-  { x: 10, y: 1, z: 10 },     // Mid-distance corner
-  { x: -10, y: 1, z: 10 },    // Mid-distance corner
-  { x: 10, y: 1, z: -10 },    // Mid-distance corner
-  { x: -10, y: 1, z: -10 },   // Mid-distance corner
-  { x: 20, y: 1, z: 20 },     // Far corner
-  { x: -20, y: 1, z: 20 },    // Far corner
-  { x: 20, y: 1, z: -20 },    // Far corner
-  { x: -20, y: 1, z: -20 },   // Far corner
-  { x: 25, y: 1, z: 0 },      // East side
-  { x: -25, y: 1, z: 0 },     // West side
-  { x: 0, y: 1, z: 25 },      // South side
-  { x: 0, y: 1, z: -25 },     // North side
-  { x: 15, y: 1, z: 15 },     // Mid-corner
-  { x: -15, y: 1, z: 15 },    // Mid-corner
-  { x: 15, y: 1, z: -15 },    // Mid-corner
-  { x: -15, y: 1, z: -15 }    // Mid-corner
+  { x: 0, y: 1, z: 0 },      // Center
+  { x: 5, y: 1, z: 5 },      // Corner
+  { x: -5, y: 1, z: 5 },     // Corner
+  { x: 5, y: 1, z: -5 },     // Corner
+  { x: -5, y: 1, z: -5 },    // Corner
+  { x: 8, y: 1, z: 0 },      // Side
+  { x: -8, y: 1, z: 0 },     // Side
+  { x: 0, y: 1, z: 8 },      // Side
+  { x: 0, y: 1, z: -8 }      // Side
 ];
 
 export class Player {
@@ -37,9 +29,9 @@ export class Player {
     this.physicsBody = null;
     
     // Movement parameters
-    this.moveSpeed = 40.0; // Increased from 20.0 to 40.0 for much faster movement (4x original speed)
+    this.moveSpeed = 20.0; // Doubled from 10.0 to 20.0 for much faster movement
     this.jumpForce = 300; // Force applied when jumping
-    this.sprintMultiplier = 2.0; // Adjusted to make running 8x faster than original walk speed
+    this.sprintMultiplier = 1.5; // Adjusted to make running 3x faster than original walk speed
     this.rotationSpeed = 2.0;
     
     // Jump tracking
