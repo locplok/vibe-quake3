@@ -106,7 +106,7 @@ class Game {
   
   // Add ground plane to the scene
   addGround() {
-    // Create a much larger ground plane (200x200 units instead of 100x100)
+    // Create a large ground plane (increased from 100x100 to 200x200 units)
     const groundGeometry = new THREE.PlaneGeometry(200, 200);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x555555, // Gray color
@@ -139,119 +139,106 @@ class Game {
   addObstacles() {
     if (!this.physics) return;
     
-    // Define the expanded map size
-    const WALL_DISTANCE = 30; // Doubled from 15 to 30
-    const WALL_WIDTH = 60; // Doubled from 30 to 60
-    const WALL_HEIGHT = 6; // Increased from 4 to 6
-    
-    // Create a border wall to define the expanded arena boundaries
+    // Create a border wall to define the arena boundaries (expanded from 30x30 to 60x60)
     // North wall
-    this.createBox(0, 3, -WALL_DISTANCE, WALL_WIDTH, WALL_HEIGHT, 1, 0x888888);
+    this.createBox(0, 2, -30, 60, 4, 1, 0x888888);
     // South wall
-    this.createBox(0, 3, WALL_DISTANCE, WALL_WIDTH, WALL_HEIGHT, 1, 0x888888);
+    this.createBox(0, 2, 30, 60, 4, 1, 0x888888);
     // East wall
-    this.createBox(WALL_DISTANCE, 3, 0, 1, WALL_HEIGHT, WALL_WIDTH, 0x888888);
+    this.createBox(30, 2, 0, 1, 4, 60, 0x888888);
     // West wall
-    this.createBox(-WALL_DISTANCE, 3, 0, 1, WALL_HEIGHT, WALL_WIDTH, 0x888888);
+    this.createBox(-30, 2, 0, 1, 4, 60, 0x888888);
     
-    // SCALED POSITION MULTIPLIER - used to spread out all objects
-    const SCALE = 1.8; // Scale factor for positioning everything
+    // Create various platforms and obstacles spread around the map
     
-    // Create various platforms and obstacles spread around the expanded map
-    // Main central structure (larger)
-    this.createBox(0, 0.5, 0, 6, 1, 6, 0xcccccc);
+    // Central area
+    // Main central structure
+    this.createBox(0, 0.5, 0, 8, 1, 8, 0xcccccc);
     
+    // Create outer bases in corners (moved further out)
     // Red corner platform with ramp
-    this.createBox(20 * SCALE, 1, 20 * SCALE, 5, 2, 5, 0xff0000);
-    this.createRamp(16 * SCALE, 0.75, 20 * SCALE, 7, 1, 4, 0.3, 0xff5555);
+    this.createBox(20, 1, 20, 8, 2, 8, 0xff0000);
+    this.createRamp(14, 0.75, 20, 10, 1, 6, 0.3, 0xff5555);
     
-    // Blue corner tower (taller)
-    this.createBox(-20 * SCALE, 1, -20 * SCALE, 4, 2, 4, 0x0000ff);
-    this.createBox(-20 * SCALE, 3, -20 * SCALE, 3, 2, 3, 0x5555ff);
-    this.createBox(-20 * SCALE, 5, -20 * SCALE, 2, 2, 2, 0x8888ff);
-    this.createBox(-20 * SCALE, 7, -20 * SCALE, 1, 2, 1, 0xaaaaff);
+    // Blue corner tower
+    this.createBox(-20, 1, -20, 6, 2, 6, 0x0000ff);
+    this.createBox(-20, 3, -20, 4, 2, 4, 0x5555ff);
+    this.createBox(-20, 5, -20, 2, 2, 2, 0x8888ff);
     
     // Green corner with jumping platforms
-    this.createBox(-20 * SCALE, 0.5, 20 * SCALE, 4, 1, 4, 0x00ff00);
-    this.createBox(-16 * SCALE, 1.5, 16 * SCALE, 2, 1, 2, 0x00ff00);
-    this.createBox(-12 * SCALE, 2.5, 12 * SCALE, 2, 1, 2, 0x00ff00);
-    this.createBox(-8 * SCALE, 3.5, 8 * SCALE, 2, 1, 2, 0x00ff00);
-    this.createBox(-4 * SCALE, 4.5, 4 * SCALE, 2, 1, 2, 0x00ff00);
+    this.createBox(-20, 0.5, 20, 6, 1, 6, 0x00ff00);
+    this.createBox(-16, 1.5, 16, 2, 1, 2, 0x00ff00);
+    this.createBox(-12, 2.5, 12, 2, 1, 2, 0x00ff00);
+    this.createBox(-8, 3.5, 8, 2, 1, 2, 0x00ff00);
     
-    // Yellow corner with expanded maze
-    this.createBox(20 * SCALE, 1, -20 * SCALE, 6, 2, 6, 0xffff00);
-    // Maze walls
-    this.createBox(17 * SCALE, 1, -17 * SCALE, 1, 2, 5, 0xffff00);
-    this.createBox(20 * SCALE, 1, -17 * SCALE, 5, 2, 1, 0xffff00);
-    this.createBox(23 * SCALE, 1, -17 * SCALE, 1, 2, 5, 0xffff00);
-    this.createBox(20 * SCALE, 1, -14 * SCALE, 5, 2, 1, 0xffff00);
-    this.createBox(18 * SCALE, 1, -20 * SCALE, 1, 2, 4, 0xffff00);
-    this.createBox(22 * SCALE, 1, -20 * SCALE, 1, 2, 4, 0xffff00);
+    // Yellow corner with walls (creates a small maze)
+    this.createBox(20, 1, -20, 8, 2, 8, 0xffff00);
+    this.createBox(16, 1, -16, 2, 2, 6, 0xffff00);
+    this.createBox(24, 1, -16, 2, 2, 6, 0xffff00);
+    this.createBox(20, 1, -12, 6, 2, 2, 0xffff00);
     
-    // Bridge across the middle (longer)
-    this.createBox(0, 1, 0, 25, 0.5, 3, 0xaaaaaa);
+    // Bridge across the middle - extended
+    this.createBox(0, 1, 0, 24, 0.5, 4, 0xaaaaaa);
+    this.createBox(0, 1, 0, 4, 0.5, 24, 0xaaaaaa);
     
-    // Cross bridge (new)
-    this.createBox(0, 1, 0, 3, 0.5, 25, 0x999999);
+    // Side platforms - moved further out
+    this.createBox(14, 1.5, 0, 4, 0.5, 4, 0xaa55aa);
+    this.createBox(-14, 1.5, 0, 4, 0.5, 4, 0xaa55aa);
+    this.createBox(0, 1.5, 14, 4, 0.5, 4, 0x55aaaa);
+    this.createBox(0, 1.5, -14, 4, 0.5, 4, 0x55aaaa);
     
-    // Side platforms - spread out more
-    this.createBox(12 * SCALE, 1.5, 0, 3, 0.5, 3, 0xaa55aa);
-    this.createBox(-12 * SCALE, 1.5, 0, 3, 0.5, 3, 0xaa55aa);
-    this.createBox(0, 1.5, 12 * SCALE, 3, 0.5, 3, 0x55aaaa);
-    this.createBox(0, 1.5, -12 * SCALE, 3, 0.5, 3, 0x55aaaa);
+    // Various ramps around the map - moved and resized
+    this.createRamp(10, 0.75, 10, 6, 1, 6, 0.3, 0xff00ff);
+    this.createRamp(-10, 0.75, -10, 6, 1, 6, -0.3, 0xff00ff);
+    this.createRamp(10, 0.75, -10, 6, 1, 6, 0.3, 0xff00ff);
+    this.createRamp(-10, 0.75, 10, 6, 1, 6, -0.3, 0xff00ff);
     
-    // Various ramps spread around more
-    this.createRamp(10 * SCALE, 0.75, 10 * SCALE, 5, 1, 5, 0.3, 0xff00ff);
-    this.createRamp(-10 * SCALE, 0.75, -10 * SCALE, 5, 1, 5, -0.3, 0xff00ff);
-    this.createRamp(10 * SCALE, 0.75, -10 * SCALE, 5, 1, 5, 0.3, 0xff00ff);
-    this.createRamp(-10 * SCALE, 0.75, 10 * SCALE, 5, 1, 5, -0.3, 0xff00ff);
+    // Add some mid-distance platforms
+    this.createBox(20, 1, 0, 5, 0.5, 5, 0x996633);
+    this.createBox(-20, 1, 0, 5, 0.5, 5, 0x996633);
+    this.createBox(0, 1, 20, 5, 0.5, 5, 0x996633);
+    this.createBox(0, 1, -20, 5, 0.5, 5, 0x996633);
     
-    // Elevated platforms with cover
-    this.createBox(0, 2, -6 * SCALE, 6, 0.5, 6, 0x999999);
-    this.createBox(0, 2.75, -9 * SCALE, 6, 1, 0.5, 0x999999); // Cover wall
+    // Elevated platform with cover
+    this.createBox(0, 2, -6, 8, 0.5, 8, 0x999999);
+    this.createBox(0, 2.75, -10, 8, 1, 0.5, 0x999999); // Cover wall
     
-    this.createBox(0, 2, 6 * SCALE, 6, 0.5, 6, 0x999999); // New platform on opposite side
-    this.createBox(0, 2.75, 9 * SCALE, 6, 1, 0.5, 0x999999); // Cover wall
+    // Create cover objects - enlarged and moved
+    this.createBox(6, 0.75, 6, 2, 1.5, 2, 0xaaaaaa);
+    this.createBox(-6, 0.75, -6, 2, 1.5, 2, 0xaaaaaa);
+    this.createBox(6, 0.75, -6, 2, 1.5, 2, 0xaaaaaa);
+    this.createBox(-6, 0.75, 6, 2, 1.5, 2, 0xaaaaaa);
     
-    // Create more cover objects
-    this.createBox(6 * SCALE, 0.75, 6 * SCALE, 2, 1.5, 2, 0xaaaaaa);
-    this.createBox(-6 * SCALE, 0.75, -6 * SCALE, 2, 1.5, 2, 0xaaaaaa);
-    this.createBox(6 * SCALE, 0.75, -6 * SCALE, 2, 1.5, 2, 0xaaaaaa);
-    this.createBox(-6 * SCALE, 0.75, 6 * SCALE, 2, 1.5, 2, 0xaaaaaa);
+    // Sniper perches on opposite sides
+    this.createBox(-25, 4, 0, 4, 0.5, 4, 0x996633);
+    this.createBox(25, 4, 0, 4, 0.5, 4, 0x996633);
     
-    // Sniper perches (multiple)
-    this.createBox(-25 * SCALE, 4, 0, 3, 0.5, 3, 0x996633);
-    this.createBox(25 * SCALE, 4, 0, 3, 0.5, 3, 0x996633);
-    this.createBox(0, 4, -25 * SCALE, 3, 0.5, 3, 0x996633);
-    this.createBox(0, 4, 25 * SCALE, 3, 0.5, 3, 0x996633);
-    
-    // Pillars in various locations - expanded radius
+    // Mid-height circle of platforms
     for (let i = 0; i < 12; i++) {
       const angle = (i / 12) * Math.PI * 2;
-      const radius = 15; // Increased from 8 to 15
+      const radius = 16;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      this.createBox(x, 2, z, 2, 0.5, 2, 0x888888);
+    }
+    
+    // Pillars in various locations - now in a wider circle
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const radius = 22;
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       this.createBox(x, 3, z, 1.5, 6, 1.5, 0x888888);
     }
     
-    // Add some floating platforms for vertical gameplay
-    const floatingPlatforms = [
-      { x: 10, y: 8, z: 10, size: 3 },
-      { x: -10, y: 6, z: 10, size: 3 },
-      { x: 10, y: 6, z: -10, size: 3 },
-      { x: -10, y: 8, z: -10, size: 3 },
-      { x: 0, y: 10, z: 0, size: 5 }
-    ];
+    // Add some elevated walkways
+    // East-West elevated walkway
+    this.createBox(10, 3, 0, 12, 0.5, 2, 0x999999);
+    this.createBox(-10, 3, 0, 12, 0.5, 2, 0x999999);
     
-    floatingPlatforms.forEach(platform => {
-      this.createBox(
-        platform.x * SCALE, 
-        platform.y, 
-        platform.z * SCALE, 
-        platform.size, 0.5, platform.size, 
-        0x777777
-      );
-    });
+    // North-South elevated walkway
+    this.createBox(0, 3, 10, 2, 0.5, 12, 0x999999);
+    this.createBox(0, 3, -10, 2, 0.5, 12, 0x999999);
   }
   
   // Add dynamic objects that can be shot
@@ -264,14 +251,14 @@ class Game {
       { x: 10, y: 0.5, z: 0 },
       { x: -10, y: 0.5, z: 0 },
       { x: 0, y: 2.5, z: 0 },
-      { x: 16, y: 0.5, z: 16 },
-      { x: -16, y: 0.5, z: -16 },
-      { x: 16, y: 0.5, z: -16 },
-      { x: -16, y: 0.5, z: 16 },
-      { x: 0, y: 0.5, z: 20 },
-      { x: 20, y: 0.5, z: 0 },
-      { x: -20, y: 0.5, z: 0 },
-      { x: 0, y: 10.5, z: 0 }
+      { x: 15, y: 0.5, z: 15 },
+      { x: -15, y: 0.5, z: -15 },
+      { x: 15, y: 0.5, z: -15 },
+      { x: -15, y: 0.5, z: 15 },
+      { x: 25, y: 0.5, z: 0 },
+      { x: -25, y: 0.5, z: 0 },
+      { x: 0, y: 0.5, z: 25 },
+      { x: 0, y: 0.5, z: -25 }
     ];
     
     // Create a stack of boxes at each location
@@ -294,15 +281,15 @@ class Game {
       }
     });
     
-    // Create many spheres across the map
-    for (let i = 0; i < 50; i++) { // Increased from 25 to 50
-      // Random position within map bounds (increased range)
-      const x = (Math.random() * 56 - 28); // Increased from 28-14 to 56-28
-      const y = 2 + Math.random() * 5;  // Increased max height from 3 to 5
+    // Create many spheres across the map (increased count and spread)
+    for (let i = 0; i < 50; i++) {
+      // Random position within the expanded map bounds
+      const x = (Math.random() * 56 - 28);
+      const y = 2 + Math.random() * 3;
       const z = (Math.random() * 56 - 28);
       
       // Random size and color
-      const radius = 0.3 + Math.random() * 0.5; // Slightly larger spheres
+      const radius = 0.3 + Math.random() * 0.4;
       const r = Math.floor(Math.random() * 256);
       const g = Math.floor(Math.random() * 256);
       const b = Math.floor(Math.random() * 256);
@@ -313,18 +300,18 @@ class Game {
     
     // Create some special large dynamic objects
     // Large ball on central platform
-    this.createDynamicSphere(0, 6, 0, 2.0, 0xff0000); // Made larger
+    this.createDynamicSphere(0, 4, 0, 1.5, 0xff0000);
     
-    // Medium balls in corners - pushed further out
-    this.createDynamicSphere(25, 3, 25, 1.2, 0x00ff00);
-    this.createDynamicSphere(-25, 3, 25, 1.2, 0x0000ff);
-    this.createDynamicSphere(25, 3, -25, 1.2, 0xffff00);
-    this.createDynamicSphere(-25, 3, -25, 1.2, 0xff00ff);
+    // Medium balls in corners (moved further out)
+    this.createDynamicSphere(24, 3, 24, 1.2, 0x00ff00);
+    this.createDynamicSphere(-24, 3, 24, 1.2, 0x0000ff);
+    this.createDynamicSphere(24, 3, -24, 1.2, 0xffff00);
+    this.createDynamicSphere(-24, 3, -24, 1.2, 0xff00ff);
     
-    // Create some special effect dynamic boxes (metallic)
-    for (let i = 0; i < 20; i++) { // Increased from 10 to 20
-      const x = (Math.random() * 50 - 25); // Wider distribution
-      const y = 1 + Math.random() * 8; // Higher potential placement
+    // Create some special effect dynamic boxes (metallic) - increased count
+    for (let i = 0; i < 20; i++) {
+      const x = (Math.random() * 50 - 25);
+      const y = 1 + Math.random() * 3;
       const z = (Math.random() * 50 - 25);
       
       // Create a special metallic box
