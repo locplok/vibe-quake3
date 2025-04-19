@@ -56,7 +56,7 @@ export class Player {
     this.physicsBody = null;
     
     // Movement parameters
-    this.moveSpeed = 20.0; // Doubled from 10.0 to 20.0 for much faster movement
+    this.moveSpeed = 200.0; // Increased 10x from 20.0 for ultra-fast movement
     this.jumpForce = 500; // Increased from 300 to 500 for higher jumps to reach mountains
     this.sprintMultiplier = 1.5; // Adjusted to make running 3x faster than original walk speed
     this.rotationSpeed = 2.0;
@@ -273,14 +273,14 @@ export class Player {
     
     // Apply stronger dampening force when not moving
     if (moveDirection.length() < 0.1) {
-      // Strong dampening when no keys are pressed (quick stop)
-      this.physicsBody.velocity.x *= 0.7; // Increased dampening from 0.8 to 0.7 for quicker stops
-      this.physicsBody.velocity.z *= 0.7;
+      // Strong dampening when no keys are pressed (very quick stop at high speeds)
+      this.physicsBody.velocity.x *= 0.5; // Increased dampening from 0.7 to 0.5 for quicker stops at high speed
+      this.physicsBody.velocity.z *= 0.5;
       return;
     } else {
-      // Lighter dampening when moving (for better control)
-      this.physicsBody.velocity.x *= 0.85; // Increased from 0.9 to 0.85 for better handling at high speed
-      this.physicsBody.velocity.z *= 0.85;
+      // Lighter dampening when moving (for better control at high speeds)
+      this.physicsBody.velocity.x *= 0.7; // Increased from 0.85 to 0.7 for better handling at ultra-high speed
+      this.physicsBody.velocity.z *= 0.7;
     }
     
     // Normalize to prevent faster diagonal movement
