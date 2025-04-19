@@ -89,17 +89,41 @@ app.use(express.static(path.join(__dirname, '../dist')));
 // Store connected players
 const players = {};
 
-// Define spawn points around the map (must match client-side spawn points)
+// Define spawn points around the map
 const SPAWN_POINTS = [
-  { x: 0, y: 1, z: 0 },      // Center
-  { x: 5, y: 1, z: 5 },      // Corner
-  { x: -5, y: 1, z: 5 },     // Corner
-  { x: 5, y: 1, z: -5 },     // Corner
-  { x: -5, y: 1, z: -5 },    // Corner
-  { x: 8, y: 1, z: 0 },      // Side
-  { x: -8, y: 1, z: 0 },     // Side
-  { x: 0, y: 1, z: 8 },      // Side
-  { x: 0, y: 1, z: -8 }      // Side
+  { x: 0, y: 1, z: 0 },       // Center
+  { x: 10, y: 1, z: 10 },     // Mid-distance corner
+  { x: -10, y: 1, z: 10 },    // Mid-distance corner
+  { x: 10, y: 1, z: -10 },    // Mid-distance corner
+  { x: -10, y: 1, z: -10 },   // Mid-distance corner
+  { x: 20, y: 1, z: 20 },     // Far corner
+  { x: -20, y: 1, z: 20 },    // Far corner
+  { x: 20, y: 1, z: -20 },    // Far corner
+  { x: -20, y: 1, z: -20 },   // Far corner
+  { x: 25, y: 1, z: 0 },      // East side
+  { x: -25, y: 1, z: 0 },     // West side
+  { x: 0, y: 1, z: 25 },      // South side
+  { x: 0, y: 1, z: -25 },     // North side
+  { x: 15, y: 1, z: 15 },     // Mid-corner
+  { x: -15, y: 1, z: 15 },    // Mid-corner
+  { x: 15, y: 1, z: -15 },    // Mid-corner
+  { x: -15, y: 1, z: -15 },   // Mid-corner
+  
+  // New multi-level platform spawn points
+  { x: 15, y: 1.5, z: 15 },   // Starting platform (Story 0)
+  { x: 3, y: 3.5, z: 15 },    // First landing (Story 1)
+  { x: 3, y: 6, z: 5 },       // Second landing (Story 2)
+  { x: 15, y: 8.5, z: 5 },    // Third landing (Story 3)
+  { x: 15, y: 11, z: 16 },    // Fourth landing (Story 4)
+  { x: 3, y: 13.5, z: 16 },   // Fifth landing (Story 5)
+  { x: 3, y: 16, z: 5 },      // Final observation deck (Story 6)
+  
+  // Elevated platforms 
+  { x: -20, y: 6, z: -20 },   // Top of blue tower
+  { x: -8, y: 4.5, z: 8 },    // Top of green jumping platforms
+  { x: 0, y: 3, z: -6 },      // Elevated platform with cover
+  { x: -25, y: 5, z: 0 },     // West sniper perch
+  { x: 25, y: 5, z: 0 }       // East sniper perch
 ];
 
 // Get a random spawn point

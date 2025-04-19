@@ -20,7 +20,45 @@ const SPAWN_POINTS = [
   { x: 15, y: 1, z: 15 },     // Mid-corner
   { x: -15, y: 1, z: 15 },    // Mid-corner
   { x: 15, y: 1, z: -15 },    // Mid-corner
-  { x: -15, y: 1, z: -15 }    // Mid-corner
+  { x: -15, y: 1, z: -15 },   // Mid-corner
+  
+  // Multi-level platform spawn points
+  { x: 15, y: 1.5, z: 15 },   // Starting platform (Story 0)
+  { x: 3, y: 3.5, z: 15 },    // First landing (Story 1)
+  { x: 3, y: 6, z: 5 },       // Second landing (Story 2)
+  { x: 15, y: 8.5, z: 5 },    // Third landing (Story 3)
+  { x: 15, y: 11, z: 16 },    // Fourth landing (Story 4)
+  { x: 3, y: 13.5, z: 16 },   // Fifth landing (Story 5)
+  { x: 3, y: 16, z: 5 },      // Final observation deck (Story 6)
+  
+  // Elevated platforms 
+  { x: -20, y: 6, z: -20 },   // Top of blue tower
+  { x: -8, y: 4.5, z: 8 },    // Top of green jumping platforms
+  { x: 0, y: 3, z: -6 },      // Elevated platform with cover
+  { x: -25, y: 5, z: 0 },     // West sniper perch
+  { x: 25, y: 5, z: 0 },      // East sniper perch
+  
+  // Elevated walkways
+  { x: 10, y: 3.5, z: 0 },    // East-West elevated walkway
+  { x: -10, y: 3.5, z: 0 },   // East-West elevated walkway
+  { x: 0, y: 3.5, z: 10 },    // North-South elevated walkway
+  { x: 0, y: 3.5, z: -10 },   // North-South elevated walkway
+  
+  // Side platform spawns
+  { x: 14, y: 2, z: 0 },      // Side platform
+  { x: -14, y: 2, z: 0 },     // Side platform
+  { x: 0, y: 2, z: 14 },      // Side platform
+  { x: 0, y: 2, z: -14 },     // Side platform
+  
+  // Mid-height circle platforms
+  { x: 16, y: 2.5, z: 0 },    // East circle platform
+  { x: -16, y: 2.5, z: 0 },   // West circle platform
+  { x: 0, y: 2.5, z: 16 },    // South circle platform
+  { x: 0, y: 2.5, z: -16 },   // North circle platform
+  { x: 11.3, y: 2.5, z: 11.3 },  // Northeast circle platform
+  { x: -11.3, y: 2.5, z: 11.3 }, // Northwest circle platform
+  { x: 11.3, y: 2.5, z: -11.3 }, // Southeast circle platform
+  { x: -11.3, y: 2.5, z: -11.3 } // Southwest circle platform
 ];
 
 export class Player {
