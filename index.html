@@ -51,9 +51,59 @@
             width: 100%;
             background-color: #f00;
         }
+        /* Mobile message overlay */
+        #mobile-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #mobile-overlay-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+        }
+        #mobile-overlay h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #ff5252;
+        }
+        #mobile-overlay p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        /* Mobile detection styles */
+        @media (max-width: 768px) {
+            #mobile-overlay {
+                display: block;
+            }
+            #game-container, #ui-container {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <div id="mobile-overlay">
+        <div id="mobile-overlay-content">
+            <h1>Version Desktop Uniquement</h1>
+            <p>Ce jeu est jouable uniquement sur un ordinateur de bureau.</p>
+            <p>Veuillez vous connecter depuis un PC ou un Mac pour profiter de l'expérience complète.</p>
+            <p>💻 Desktop Only Game 💻</p>
+        </div>
+    </div>
+    
     <div id="game-container"></div>
     <div id="ui-container">
         <div id="crosshair">+</div>
