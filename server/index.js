@@ -91,15 +91,42 @@ const players = {};
 
 // Define spawn points around the map (must match client-side spawn points)
 const SPAWN_POINTS = [
-  { x: 0, y: 1, z: 0 },      // Center
-  { x: 5, y: 1, z: 5 },      // Corner
-  { x: -5, y: 1, z: 5 },     // Corner
-  { x: 5, y: 1, z: -5 },     // Corner
-  { x: -5, y: 1, z: -5 },    // Corner
-  { x: 8, y: 1, z: 0 },      // Side
-  { x: -8, y: 1, z: 0 },     // Side
-  { x: 0, y: 1, z: 8 },      // Side
-  { x: 0, y: 1, z: -8 }      // Side
+  // Center area
+  { x: 0, y: 1, z: 0 },        // Center
+  { x: 10, y: 1, z: 10 },      // Near center
+  { x: -10, y: 1, z: 10 },     // Near center
+  { x: 10, y: 1, z: -10 },     // Near center
+  { x: -10, y: 1, z: -10 },    // Near center
+  
+  // Mid-range positions
+  { x: 40, y: 1, z: 40 },      // Southeast quadrant
+  { x: -40, y: 1, z: 40 },     // Northeast quadrant
+  { x: -40, y: 1, z: -40 },    // Northwest quadrant
+  { x: 40, y: 1, z: -40 },     // Southwest quadrant
+  
+  // Near mountains
+  { x: 70, y: 1, z: 70 },      // Near Orange mountain (Southeast)
+  { x: -70, y: 1, z: 70 },     // Near Brown mountain (Northeast)
+  { x: -70, y: 1, z: -70 },    // Near Blue-grey mountain (Northwest)
+  { x: 70, y: 1, z: -70 },     // Near Light green mountain (Southwest)
+  { x: 0, y: 1, z: -80 },      // Near Purple mountain (North)
+  { x: 0, y: 1, z: 80 },       // Near Indigo mountain (South)
+  
+  // Far positions (near map edges)
+  { x: 90, y: 1, z: 0 },       // Far east
+  { x: -90, y: 1, z: 0 },      // Far west
+  { x: 0, y: 1, z: 90 },       // Far south
+  { x: 0, y: 1, z: -90 },      // Far north
+  { x: 90, y: 1, z: 90 },      // Far southeast corner
+  { x: -90, y: 1, z: 90 },     // Far northeast corner
+  { x: -90, y: 1, z: -90 },    // Far northwest corner
+  { x: 90, y: 1, z: -90 },     // Far southwest corner
+  
+  // On elevated terrain (for interesting spawns)
+  { x: 80, y: 3, z: 80 },      // On Orange mountain base (Southeast)
+  { x: -80, y: 3, z: 80 },     // On Brown mountain base (Northeast)
+  { x: -80, y: 3, z: -80 },    // On Blue-grey mountain base (Northwest)
+  { x: 80, y: 3, z: -80 }      // On Light green mountain base (Southwest)
 ];
 
 // Get a random spawn point
