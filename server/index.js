@@ -25,12 +25,15 @@ io.use((socket, next) => {
     // Check if this is a health update event
     if (event === 'healthUpdate') {
       const data = args[0];
+      console.log(`INTERCEPTED socket.emit healthUpdate (args length: ${args.length}): ${JSON.stringify(data)}`);
       
       // Ensure armor property exists
       if (data && data.armor === undefined) {
+        console.log(`FIXING missing armor property for player ${data.id} in socket.emit`);
         // Find the player's armor value or default to 0
         const playerArmor = players[data.id] ? (players[data.id].armor || 0) : 0;
         data.armor = playerArmor;
+        console.log(`Set armor to ${data.armor}`);
         
         // Important: Create a completely new object to avoid reference issues
         const fixedData = {
@@ -38,6 +41,7 @@ io.use((socket, next) => {
           health: data.health,
           armor: playerArmor
         };
+        console.log(`FIXED object for socket.emit: ${JSON.stringify(fixedData)}`);
         
         // Replace the original object in args
         args[0] = fixedData;
@@ -54,9 +58,11 @@ io.emit = function(event, ...args) {
   // Check if this is a health update event
   if (event === 'healthUpdate') {
     const data = args[0];
+    console.log(`INTERCEPTED io.emit healthUpdate (args length: ${args.length}): ${JSON.stringify(data)}`);
     
     // Ensure armor property exists
     if (data && data.armor === undefined) {
+      console.log(`FIXING missing armor property for player ${data.id} in io.emit`);
       // Find the player's armor value or default to 0
       const playerArmor = players[data.id] ? (players[data.id].armor || 0) : 0;
       
@@ -66,6 +72,7 @@ io.emit = function(event, ...args) {
         health: data.health,
         armor: playerArmor
       };
+      console.log(`FIXED object for io.emit: ${JSON.stringify(fixedData)}`);
       
       // Replace the original object in args
       args[0] = fixedData;
@@ -158,6 +165,7 @@ io.on('connection', (socket) => {
     // Ensure armor is never undefined by defaulting to 0
     armor: players[socket.id].armor !== undefined ? players[socket.id].armor : 0
   };
+  console.log(`SENDING INITIAL HEALTH UPDATE: ${JSON.stringify(initialHealthUpdate)}`);
   socket.emit('healthUpdate', initialHealthUpdate);
   
   // Handle player movement
@@ -174,6 +182,19 @@ io.on('connection', (socket) => {
     // Debug counter for position updates per player
     if (!socket._posUpdateCount) socket._posUpdateCount = 0;
     socket._posUpdateCount++;
+    
+    // Log movement periodically
+    if (socket._posUpdateCount % 500 === 0) {
+      console.log(`SERVER: Player ${socket.id} has sent ${socket._posUpdateCount} position updates`);
+      console.log(`Current position: (${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
+      console.log(`Current player count: ${Object.keys(players).length}`);
+    }
+    
+    // Log movement occasionally to avoid spamming the console
+    if (Math.random() < 0.001) { // Only log ~0.1% of updates
+      console.log(`Player ${socket.id} moved to:`, 
+        `(${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
+    }
     
     // Update the player's data
     if (players[socket.id]) {
@@ -192,6 +213,12 @@ io.on('connection', (socket) => {
       };
       
       // Broadcast the update to all other players
+      // Log every 1000th broadcast to verify it's happening
+      if (socket._posUpdateCount % 1000 === 0) {
+        console.log(`Broadcasting player movement to ${Object.keys(players).length - 1} other players`);
+        console.log(`Data being broadcast:`, playerData);
+      }
+      
       socket.broadcast.emit('playerMoved', playerData);
     } else {
       console.error(`Received movement data for non-existent player: ${socket.id}`);
@@ -211,23 +238,31 @@ io.on('connection', (socket) => {
   // Add a debug command to add armor
   socket.on('debugSetArmor', (amount) => {
     if (players[socket.id]) {
+      const oldArmor = players[socket.id].armor || 0;
       players[socket.id].armor = amount;
-      console.log(`Player ${socket.id} armor set to ${amount}`);
+      console.log(`==== DEBUG ARMOR COMMAND ====`);
+      console.log(`Player ${socket.id} armor set: ${oldArmor} → ${amount}`);
       
       // Send health update to all players with the new armor value
+      console.log(`Broadcasting health update with new armor value: ${amount}`);
       const armorUpdateObj = {
         id: socket.id,
         health: players[socket.id].health,
         // Ensure armor is never undefined by defaulting to the amount
         armor: players[socket.id].armor !== undefined ? players[socket.id].armor : amount
       };
+      console.log(`SENDING ARMOR UPDATE: ${JSON.stringify(armorUpdateObj)}`);
       io.emit('healthUpdate', armorUpdateObj);
+      console.log(`==== DEBUG COMMAND COMPLETE ====`);
     }
   });
   
   // Add handler for health update requests
   socket.on('requestHealthUpdate', () => {
     if (players[socket.id]) {
+      console.log(`Player ${socket.id} requested health update sync`);
+      console.log(`Current values - Health: ${players[socket.id].health}, Armor: ${players[socket.id].armor}`);
+      
       // Send immediate health update with current values
       const requestedUpdateObj = {
         id: socket.id,
@@ -235,6 +270,7 @@ io.on('connection', (socket) => {
         // Ensure armor is never undefined by defaulting to 0
         armor: players[socket.id].armor !== undefined ? players[socket.id].armor : 0
       };
+      console.log(`SENDING REQUESTED HEALTH UPDATE: ${JSON.stringify(requestedUpdateObj)}`);
       socket.emit('healthUpdate', requestedUpdateObj);
     }
   });
@@ -244,12 +280,18 @@ io.on('connection', (socket) => {
     const targetId = hitData.id;
     const damage = Math.round(hitData.damage); // Round damage to integer
     
+    console.log(`\n=== RECEIVED PLAYER HIT EVENT ===`);
+    console.log(`Shooter: ${socket.id}`);
+    console.log(`Target: ${targetId}`);
+    console.log(`Damage: ${damage}`);
+    console.log(`Target exists: ${!!players[targetId]}`);
+    
     // Acknowledge receipt if the callback exists
     const sendAcknowledgment = typeof acknowledge === 'function';
     
     // Verify target exists
     if (!players[targetId]) {
-      console.error(`Hit on non-existent player ${targetId}`);
+      console.log(`ERROR: Hit on non-existent player ${targetId}`);
       if (sendAcknowledgment) {
         acknowledge({ 
           success: false, 
@@ -262,8 +304,12 @@ io.on('connection', (socket) => {
     // Initialize armor if it doesn't exist (shouldn't happen with explicit init)
     if (players[targetId].armor === undefined) {
       players[targetId].armor = 0;
-      console.warn(`Player ${targetId} had undefined armor, initializing to 0`);
+      console.log(`WARNING: Player ${targetId} had undefined armor, initializing to 0`);
     }
+    
+    console.log(`\n=== SERVER DAMAGE CALCULATION ===`);
+    console.log(`Player ${targetId} taking ${damage} damage with ${players[targetId].armor} armor`);
+    console.log(`Armor type: ${typeof players[targetId].armor}`);
     
     // Calculate damage reduction with armor (80% protection)
     const armorProtection = 0.8; // 80% damage reduction
@@ -279,17 +325,22 @@ io.on('connection', (socket) => {
       
       // Calculate maximum damage that can go to armor
       const maxArmorDamage = damage * armorDamagePercent;
+      console.log(`- Maximum armor damage (${armorDamagePercent*100}% of total): ${maxArmorDamage.toFixed(2)}`);
       
       // Limit by available armor
       armorDamage = Math.min(players[targetId].armor, maxArmorDamage);
+      console.log(`- Actual armor damage: ${armorDamage.toFixed(2)}`);
       
       // Update armor
       const oldArmor = players[targetId].armor;
       players[targetId].armor = Math.round(Math.max(0, players[targetId].armor - armorDamage));
+      console.log(`- Armor reduced from ${oldArmor} to ${players[targetId].armor}`);
       
       // Calculate health damage (remaining damage goes to health)
       healthDamage = Math.round(damage - armorDamage); 
+      console.log(`- Final health damage: ${healthDamage.toFixed(2)}`);
     } else {
+      console.log(`- No armor, full damage (${damage}) goes to health`);
       // Explicitly set health damage to full damage amount when no armor
       healthDamage = damage;
     }
@@ -302,7 +353,11 @@ io.on('connection', (socket) => {
     // This ensures players don't end up with less than 1 health from multiple hits
     if (players[targetId].health > 0 && players[targetId].health < 1) {
       players[targetId].health = 1;
+      console.log(`- Health clamped to minimum value of 1`);
     }
+    
+    console.log(`- Health reduced from ${oldHealth} to ${players[targetId].health}`);
+    console.log(`=== END CALCULATION ===\n`);
     
     // Check if player died
     const playerDied = players[targetId].health <= 0;
@@ -349,6 +404,7 @@ io.on('connection', (socket) => {
     
     // Send health update to all players - ALWAYS include armor value
     const finalArmorValue = players[targetId].armor !== undefined ? players[targetId].armor : 0;
+    console.log(`Sending health update with armor=${finalArmorValue} (${typeof finalArmorValue})`);
     
     // CRITICAL FIX: Explicitly create the complete update object with all required properties
     const healthUpdateObj = {
@@ -356,6 +412,9 @@ io.on('connection', (socket) => {
       health: players[targetId].health,
       armor: finalArmorValue
     };
+    
+    // Log the exact object being sent
+    console.log(`SENDING HEALTH UPDATE: ${JSON.stringify(healthUpdateObj)}`);
     
     // Send the complete object
     io.emit('healthUpdate', healthUpdateObj);

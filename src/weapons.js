@@ -6,9 +6,10 @@ export class WeaponSystem {
     this.scene = scene;
     this.physics = physics;
     
-    // Debug the physics reference only if missing
-    if (!this.physics) {
-      console.error('WeaponSystem initialized without physics reference');
+    // Debug the physics reference
+    console.log("WeaponSystem constructor - Physics reference:", this.physics ? "YES" : "NO");
+    if (this.physics) {
+      console.log("Physics bodies count:", this.physics.bodies.length);
     }
     
     // Raycaster for hit detection
@@ -45,6 +46,8 @@ export class WeaponSystem {
     
     // Collection for impact effects
     this.activeImpacts = [];
+    
+    console.log('Weapon system initialized with physics:', physics ? "YES" : "NO");
   }
   
   shoot(origin, direction, currentTime) {
@@ -53,6 +56,7 @@ export class WeaponSystem {
       console.error('Weapon system has no physics reference.');
       // Try to get physics reference from the global game object
       if (window.game && window.game.physics) {
+        console.log("Fixing missing physics reference from global game object");
         this.physics = window.game.physics;
       } else {
         return { hit: false };
@@ -64,14 +68,20 @@ export class WeaponSystem {
     
     // Check cooldown
     if (currentTime - this.lastShootTime < this.cooldown) {
+      console.log("Weapon on cooldown, can't shoot yet");
       return { hit: false };
     }
+    
+    console.log("=== SHOOTING ===");
+    console.log(`Origin: (${origin.x.toFixed(2)}, ${origin.y.toFixed(2)}, ${origin.z.toFixed(2)})`);
+    console.log(`Direction: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
     
     // Update last shoot time
     this.lastShootTime = currentTime;
     
     // Always send shot information to the network first
     if (window.game && window.game.network) {
+      console.log(`Sending shot event to server with origin and direction`);
       window.game.network.sendShot(origin, direction);
     }
     
@@ -83,6 +93,7 @@ export class WeaponSystem {
       // Create a bullet trail to the hit point
       this.createBulletTrail(origin, playerHit.point);
       
+      // Note: we've already sent the shot event above, no need to send it again
       return playerHit;
     }
     
@@ -111,6 +122,8 @@ export class WeaponSystem {
       const hitPosition = hit.point;
       const hitNormal = hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0);
       const hitObject = hit.object;
+      
+      console.log('Hit object:', hitObject.name, 'at distance', hit.distance.toFixed(2));
       
       // Create end point for visuals
       const endPoint = hitPosition.clone();
@@ -285,7 +298,7 @@ export class WeaponSystem {
     }
   }
   
-  // Utility function to debug the physics system - only used when troubleshooting
+  // Utility function to debug the physics system
   debugPhysicsSystem() {
     console.log("--- PHYSICS DEBUG ---");
     if (!this.physics) {
@@ -309,17 +322,21 @@ export class WeaponSystem {
     console.log("---------------------");
   }
   
-  // Check for hits on other players
+  // New method to check for hits on other players
   checkPlayerHits(origin, direction) {
     // Only check for player hits if we're in multiplayer mode
     if (!window.game || !window.game.network) {
+      console.log("No game or network available for player hit detection");
       return null;
     }
     
     const playerModels = window.game.network.playerModels;
     if (!playerModels || Object.keys(playerModels).length === 0) {
+      console.log("No player models found for hit detection");
       return null;
     }
+    
+    console.log(`Checking for hits against ${Object.keys(playerModels).length} players`);
     
     // Create a temporary array of meshes to check against
     const playerMeshes = [];
@@ -328,6 +345,7 @@ export class WeaponSystem {
     // Gather all player meshes for raycast checking
     for (const playerId in playerModels) {
       if (playerModels[playerId]) {
+        console.log(`Adding player ${playerId} to hit detection check`);
         const playerMesh = playerModels[playerId];
         playerMeshes.push(playerMesh);
         playerIds.set(playerMesh, playerId); // Store the mesh->ID relationship
@@ -335,17 +353,26 @@ export class WeaponSystem {
     }
     
     if (playerMeshes.length === 0) {
+      console.log("No player meshes to check against");
       return null;
     }
     
-    // Set up raycaster for player hit detection
+    // Set up raycaster for player hit detection with more detailed options
     const playerRaycaster = new THREE.Raycaster(origin, direction, 0, this.range);
+    
+    // Log detailed raycaster information
+    console.log(`Raycaster origin: (${origin.x.toFixed(2)}, ${origin.y.toFixed(2)}, ${origin.z.toFixed(2)})`);
+    console.log(`Raycaster direction: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
+    console.log(`Raycaster range: ${this.range}`);
     
     // Check for intersections with player models
     const playerIntersects = playerRaycaster.intersectObjects(playerMeshes, false);
     
+    console.log(`Got ${playerIntersects.length} player intersections`);
+    
     if (playerIntersects.length > 0) {
       const hit = playerIntersects[0];
+      console.log("Player hit detected! Object:", hit.object.name);
       
       // Try multiple ways to get the player ID
       let hitPlayerId = hit.object.userData?.playerId;
@@ -353,10 +380,11 @@ export class WeaponSystem {
       // If userData doesn't have playerID, try using the Map
       if (!hitPlayerId) {
         hitPlayerId = playerIds.get(hit.object);
+        console.log(`Retrieved player ID from Map: ${hitPlayerId}`);
       }
       
       if (hitPlayerId) {
-        console.log(`Hit player with ID: ${hitPlayerId}`);
+        console.log(`★★★ HIT PLAYER WITH ID: ${hitPlayerId} ★★★`);
         
         // Create impact effect at hit point
         const normal = direction.clone().negate();
@@ -367,13 +395,19 @@ export class WeaponSystem {
         
         // Send hit information to the network
         if (window.game.network && window.game.network.connected) {
+          console.log(`★★★ SENDING HIT EVENT TO SERVER ★★★`);
+          console.log(`Target: Player ${hitPlayerId}`);
+          console.log(`Damage: ${damage}`);
+          
           // CRITICAL: Add retry mechanism for sending hit
           try {
             window.game.network.sendHit(hitPlayerId, damage);
+            console.log(`★★★ HIT EVENT SENT SUCCESSFULLY ★★★`);
           } catch (error) {
             console.error(`Error sending hit event: ${error}`);
             // Retry once
             setTimeout(() => {
+              console.log("Retrying hit event send...");
               window.game.network.sendHit(hitPlayerId, damage);
             }, 100);
           }
@@ -391,7 +425,11 @@ export class WeaponSystem {
           playerId: hitPlayerId,
           damage: damage // Include damage in return value
         };
+      } else {
+        console.log("Hit object has no player ID in userData");
       }
+    } else {
+      console.log("No player intersection detected");
     }
     
     return null;
@@ -418,9 +456,10 @@ export class WeaponSystem {
     
     // Send hit info to the server
     if (window.game && window.game.network) {
+      console.log(`Sending hit to server: playerId=${playerId}, damage=${this.damage}`);
       window.game.network.sendHit(playerId, this.damage);
     } else {
-      console.error('No network manager found, cannot report player hit');
+      console.log('No network manager found, cannot report player hit');
     }
   }
   
@@ -428,19 +467,32 @@ export class WeaponSystem {
   handleHit(hitResult, direction) {
     if (!hitResult || !hitResult.object) return;
     
+    console.log(`==== HIT DETECTION ====`);
+    console.log(`Hit object: ${hitResult.object.name || 'unnamed'}`);
+    console.log(`Hit distance: ${hitResult.distance.toFixed(2)}`);
+    
+    // Create impact effect
+    this.createImpactEffect(hitResult.point);
+    
     // Check if we hit a player
     if (hitResult.object.name === 'other-player' && hitResult.object.userData) {
       const playerId = hitResult.object.userData.playerId;
       console.log(`Hit player with ID: ${playerId}`);
       
-      // Use fixed damage value
+      // Use fixed damage value instead of distance-based calculation
+      // for consistent damage behavior across the game
       const damage = 25;
+      console.log(`Using standard damage: ${damage}`);
       
       // Send hit to server
       if (window.game && window.game.network) {
+        console.log(`★★★ SENDING PLAYER HIT FROM HANDLE_HIT ★★★`);
+        console.log(`Target: Player ${playerId}`);
+        console.log(`Damage: ${damage}`);
         window.game.network.sendHit(playerId, damage);
+        console.log(`★★★ HIT EVENT SENT ★★★`);
       } else {
-        console.error("Cannot send player hit - network unavailable");
+        console.error("CRITICAL ERROR: Cannot send player hit - network unavailable");
       }
       
       return {
@@ -468,6 +520,8 @@ export class WeaponSystem {
         );
         body.applyImpulse(impulse, worldPoint);
         
+        console.log(`Applied physics impulse: ${impulse.length().toFixed(2)} at distance ${hitResult.distance.toFixed(2)}`);
+        
         return {
           hit: true,
           type: 'physics',
@@ -481,5 +535,7 @@ export class WeaponSystem {
       hit: true,
       type: 'static'
     };
+    
+    console.log(`==== HIT PROCESSING COMPLETE ====`);
   }
 } 
