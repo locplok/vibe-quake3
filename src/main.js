@@ -137,10 +137,13 @@ class Game {
   
   // Add obstacles to the scene
   addObstacles() {
-    // Add 3 mountains at different positions
-    this.createMountain(30, 20, -30, 25, 15, 0xff9800);  // Orange mountain 
-    this.createMountain(-40, 25, 40, 30, 20, 0x795548);  // Brown mountain
-    this.createMountain(0, 30, 50, 35, 25, 0x607d8b);    // Blue-grey mountain
+    // Add 6 mountains evenly distributed around the map
+    this.createMountain(80, 20, 80, 25, 15, 0xff9800);    // Orange mountain (Southeast)
+    this.createMountain(-80, 25, 80, 30, 20, 0x795548);   // Brown mountain (Northeast)
+    this.createMountain(-80, 30, -80, 35, 25, 0x607d8b);  // Blue-grey mountain (Northwest)
+    this.createMountain(80, 22, -80, 28, 18, 0x8bc34a);   // Light green mountain (Southwest)
+    this.createMountain(0, 35, -90, 32, 27, 0x9c27b0);    // Purple mountain (North)
+    this.createMountain(0, 28, 90, 30, 22, 0x3f51b5);     // Indigo mountain (South)
     
     // Add trees around the world
     this.addTrees();
@@ -159,8 +162,8 @@ class Game {
     });
     const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
     
-    // Position the mountain
-    mountain.position.set(x, y/2, z);
+    // Position the mountain - ensuring the base is on the ground (y=0)
+    mountain.position.set(x, height/2, z);
     
     // Enable shadows
     mountain.castShadow = true;
@@ -174,7 +177,7 @@ class Game {
       const mountainShape = new CANNON.Cylinder(radius, 0, height, 8);
       const mountainBody = new CANNON.Body({
         mass: 0, // Static
-        position: new CANNON.Vec3(x, y/2, z),
+        position: new CANNON.Vec3(x, height/2, z),
         shape: mountainShape,
         material: new CANNON.Material({
           friction: 0.6,

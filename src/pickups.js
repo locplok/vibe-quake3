@@ -64,9 +64,12 @@ export class PickupManager {
     this.addPickupLocation(-30, 1, -30, PICKUP_TYPES.HEALTH);
     
     // Health packs on mountains (higher elevation)
-    this.addPickupLocation(30, 15, -30, PICKUP_TYPES.HEALTH); // On orange mountain
-    this.addPickupLocation(-40, 20, 40, PICKUP_TYPES.HEALTH); // On brown mountain
-    this.addPickupLocation(0, 25, 50, PICKUP_TYPES.HEALTH);   // On blue-grey mountain
+    this.addPickupLocation(80, 10, 80, PICKUP_TYPES.HEALTH);     // Orange mountain (Southeast)
+    this.addPickupLocation(-80, 15, 80, PICKUP_TYPES.HEALTH);    // Brown mountain (Northeast)
+    this.addPickupLocation(-80, 18, -80, PICKUP_TYPES.HEALTH);   // Blue-grey mountain (Northwest)
+    this.addPickupLocation(80, 14, -80, PICKUP_TYPES.HEALTH);    // Light green mountain (Southwest)
+    this.addPickupLocation(0, 22, -90, PICKUP_TYPES.HEALTH);     // Purple mountain (North)
+    this.addPickupLocation(0, 17, 90, PICKUP_TYPES.HEALTH);      // Indigo mountain (South)
     
     // Armor locations - distributed across the expanded world
     this.addPickupLocation(0, 1, -10, PICKUP_TYPES.ARMOR);
@@ -77,9 +80,12 @@ export class PickupManager {
     this.addPickupLocation(-5, 1, 5, PICKUP_TYPES.ARMOR);
     
     // Armor pickups on mountains (higher elevation)
-    this.addPickupLocation(30, 13, -30, PICKUP_TYPES.ARMOR); // On orange mountain
-    this.addPickupLocation(-40, 18, 40, PICKUP_TYPES.ARMOR); // On brown mountain
-    this.addPickupLocation(0, 22, 50, PICKUP_TYPES.ARMOR);   // On blue-grey mountain
+    this.addPickupLocation(80, 8, 80, PICKUP_TYPES.ARMOR);       // Orange mountain (Southeast)
+    this.addPickupLocation(-80, 12, 80, PICKUP_TYPES.ARMOR);     // Brown mountain (Northeast)
+    this.addPickupLocation(-80, 15, -80, PICKUP_TYPES.ARMOR);    // Blue-grey mountain (Northwest)
+    this.addPickupLocation(80, 11, -80, PICKUP_TYPES.ARMOR);     // Light green mountain (Southwest) 
+    this.addPickupLocation(0, 18, -90, PICKUP_TYPES.ARMOR);      // Purple mountain (North)
+    this.addPickupLocation(0, 14, 90, PICKUP_TYPES.ARMOR);       // Indigo mountain (South)
     
     // Additional armor pickups near tree clusters
     this.addPickupLocation(60, 1, 60, PICKUP_TYPES.ARMOR);
