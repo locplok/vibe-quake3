@@ -89,41 +89,17 @@ app.use(express.static(path.join(__dirname, '../dist')));
 // Store connected players
 const players = {};
 
-// Define spawn points around the map
+// Define spawn points around the map (must match client-side spawn points)
 const SPAWN_POINTS = [
-  { x: 0, y: 1, z: 0 },       // Center
-  { x: 10, y: 1, z: 10 },     // Mid-distance corner
-  { x: -10, y: 1, z: 10 },    // Mid-distance corner
-  { x: 10, y: 1, z: -10 },    // Mid-distance corner
-  { x: -10, y: 1, z: -10 },   // Mid-distance corner
-  { x: 20, y: 1, z: 20 },     // Far corner
-  { x: -20, y: 1, z: 20 },    // Far corner
-  { x: 20, y: 1, z: -20 },    // Far corner
-  { x: -20, y: 1, z: -20 },   // Far corner
-  { x: 25, y: 1, z: 0 },      // East side
-  { x: -25, y: 1, z: 0 },     // West side
-  { x: 0, y: 1, z: 25 },      // South side
-  { x: 0, y: 1, z: -25 },     // North side
-  { x: 15, y: 1, z: 15 },     // Mid-corner
-  { x: -15, y: 1, z: 15 },    // Mid-corner
-  { x: 15, y: 1, z: -15 },    // Mid-corner
-  { x: -15, y: 1, z: -15 },   // Mid-corner
-  
-  // New multi-level platform spawn points
-  { x: 15, y: 1.5, z: 15 },   // Starting platform (Story 0)
-  { x: 3, y: 3.5, z: 15 },    // First landing (Story 1)
-  { x: 3, y: 6, z: 5 },       // Second landing (Story 2)
-  { x: 15, y: 8.5, z: 5 },    // Third landing (Story 3)
-  { x: 15, y: 11, z: 16 },    // Fourth landing (Story 4)
-  { x: 3, y: 13.5, z: 16 },   // Fifth landing (Story 5)
-  { x: 3, y: 16, z: 5 },      // Final observation deck (Story 6)
-  
-  // Elevated platforms 
-  { x: -20, y: 6, z: -20 },   // Top of blue tower
-  { x: -8, y: 4.5, z: 8 },    // Top of green jumping platforms
-  { x: 0, y: 3, z: -6 },      // Elevated platform with cover
-  { x: -25, y: 5, z: 0 },     // West sniper perch
-  { x: 25, y: 5, z: 0 }       // East sniper perch
+  { x: 0, y: 1, z: 0 },      // Center
+  { x: 5, y: 1, z: 5 },      // Corner
+  { x: -5, y: 1, z: 5 },     // Corner
+  { x: 5, y: 1, z: -5 },     // Corner
+  { x: -5, y: 1, z: -5 },    // Corner
+  { x: 8, y: 1, z: 0 },      // Side
+  { x: -8, y: 1, z: 0 },     // Side
+  { x: 0, y: 1, z: 8 },      // Side
+  { x: 0, y: 1, z: -8 }      // Side
 ];
 
 // Get a random spawn point
@@ -167,30 +143,9 @@ io.on('connection', (socket) => {
   
   // Handle player movement
   socket.on('playerMovement', (movementData) => {
-    console.log(`==== PLAYER MOVEMENT ====`);
-    console.log(`Player ID: ${socket.id}`);
-    console.log(`Position: (${movementData.position.x.toFixed(2)}, ${movementData.position.y.toFixed(2)}, ${movementData.position.z.toFixed(2)})`);
-    console.log(`Rotation: ${movementData.rotation.toFixed(2)}`);
-    
-    // Update the player's position and rotation
     players[socket.id].position = movementData.position;
     players[socket.id].rotation = movementData.rotation;
-    
-    // If timestamp is provided, save it to filter outdated updates
-    if (movementData.timestamp) {
-      players[socket.id].lastMoveTime = movementData.timestamp;
-    }
-    
-    // Broadcast the updated position to all other players
-    socket.broadcast.emit('playerMoved', {
-      id: socket.id,
-      position: players[socket.id].position,
-      rotation: players[socket.id].rotation,
-      timestamp: movementData.timestamp || Date.now()
-    });
-    
-    console.log(`Broadcasted movement to ${Object.keys(players).length - 1} other players`);
-    console.log(`==== MOVEMENT PROCESSED ====`);
+    socket.broadcast.emit('playerMoved', players[socket.id]);
   });
   
   // Handle player shots

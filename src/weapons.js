@@ -346,27 +346,13 @@ export class WeaponSystem {
     for (const playerId in playerModels) {
       if (playerModels[playerId]) {
         console.log(`Adding player ${playerId} to hit detection check`);
-        
-        // Get all meshes in the player group
-        const group = playerModels[playerId];
-        
-        // Traverse the group to find all meshes
-        group.traverse(object => {
-          // Only include mesh objects that are the player model
-          if (object.isMesh && object.name === 'other-player') {
-            // Make sure this mesh has the playerId in userData
-            if (object.userData && object.userData.playerId) {
-              playerMeshes.push(object);
-              playerIds.push(object.userData.playerId);
-              console.log(`Added player mesh for ${object.userData.playerId} to hit check`);
-            }
-          }
-        });
+        playerMeshes.push(playerModels[playerId]);
+        playerIds.push(playerId);
       }
     }
     
     if (playerMeshes.length === 0) {
-      console.log("No player meshes to check against after filtering");
+      console.log("No player meshes to check against");
       return null;
     }
     

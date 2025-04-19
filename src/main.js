@@ -9,32 +9,6 @@ import * as CANNON from 'cannon-es';
 // Scene, camera, and renderer setup
 class Game {
   constructor() {
-    // Game state
-    this.scene = null;
-    this.camera = null;
-    this.renderer = null;
-    this.clock = null;
-    this.deltaTime = 0;
-    this.lastTime = 0;
-    this.player = null;
-    this.physics = null;
-    this.inputHandler = null;
-    this.network = null;
-    this.pickupManager = null;
-    
-    // Network update rate (in seconds)
-    this.networkUpdateRate = 0.05; // Increased from default to 50ms for smoother movement (20 updates per second)
-    this.lastNetworkUpdate = 0;
-    
-    // Initialize the game
-    this.init();
-    
-    // Start the animation loop
-    this.animate();
-  }
-  
-  // Initialize the game
-  init() {
     // Initialize timing
     this.clock = new THREE.Clock();
     this.deltaTime = 0;
@@ -79,6 +53,9 @@ class Game {
     // Add dynamic objects
     this.addDynamicObjects();
     
+    // Add climbing path
+    this.createClimbingPath();
+    
     // Add ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambientLight);
@@ -107,6 +84,10 @@ class Game {
     // Connect to server
     this.network.connect();
     
+    // Last position/rotation sent to the server
+    this.lastNetworkUpdate = 0;
+    this.networkUpdateRate = 0.05; // 50ms (20 updates per second)
+    
     // Handle window resize
     window.addEventListener('resize', this.onWindowResize.bind(this), false);
     
@@ -118,6 +99,10 @@ class Game {
     
     // Schedule system verification
     setTimeout(() => this.verifySystemsInitialization(), 2000);
+    
+    // Start animation loop
+    this.lastTime = this.clock.getElapsedTime();
+    this.animate();
     
     console.log('Game initialized with physics, weapons, pickups, and network');
   }
@@ -194,79 +179,6 @@ class Game {
     this.createBox(16, 1, -16, 2, 2, 6, 0xffff00);
     this.createBox(24, 1, -16, 2, 2, 6, 0xffff00);
     this.createBox(20, 1, -12, 6, 2, 2, 0xffff00);
-    
-    // ADD MULTI-LEVEL ASCENDING PATH - a spiral staircase-like structure with ramps
-    // We'll start in the Northeast quadrant and create a winding path that goes up
-    
-    // Define the color scheme for our ascending path
-    const pathBaseColor = 0xA67B5B; // Brownish base
-    const pathRampColor = 0xBF8969; // Lighter brown for ramps
-    const pathAccentColor = 0x8D6E63; // Darker brown for accents
-    const railingColor = 0x795548; // Dark brown for railings
-    
-    // Starting platform (Ground level, story 0)
-    this.createBox(15, 0.5, 15, 6, 1, 6, pathBaseColor);
-    
-    // First ramp - Going west (Ground to story 1, height ~2.5)
-    this.createRamp(9, 1.25, 15, 10, 1, 4, 0.3, pathRampColor);
-    
-    // First landing platform (Story 1, height ~2.5)
-    this.createBox(3, 2.5, 15, 4, 1, 6, pathBaseColor);
-    // Add railing to prevent falling
-    this.createBox(3, 3.25, 18, 4, 1, 0.5, railingColor);
-    
-    // Second ramp - Going north (Story 1 to 2, height ~5)
-    this.createRamp(3, 3.75, 10, 4, 1, 10, 0.3, pathRampColor);
-    
-    // Second landing platform (Story 2, height ~5)
-    this.createBox(3, 5, 5, 4, 1, 4, pathBaseColor);
-    // Add railings to prevent falling
-    this.createBox(1, 5.75, 5, 0.5, 1, 4, railingColor);
-    this.createBox(3, 5.75, 3, 4, 1, 0.5, railingColor);
-    
-    // Third ramp - Going east (Story 2 to 3, height ~7.5)
-    this.createRamp(9, 6.25, 5, 10, 1, 4, 0.3, pathRampColor);
-    
-    // Third landing platform (Story 3, height ~7.5)
-    this.createBox(15, 7.5, 5, 4, 1, 4, pathBaseColor);
-    // Add railings to prevent falling
-    this.createBox(17, 8.25, 5, 0.5, 1, 4, railingColor);
-    this.createBox(15, 8.25, 7, 4, 1, 0.5, railingColor);
-    
-    // Fourth ramp - Going south (Story 3 to 4, height ~10)
-    this.createRamp(15, 8.75, 11, 4, 1, 10, 0.3, pathRampColor);
-    
-    // Fourth landing platform (Story 4, height ~10)
-    this.createBox(15, 10, 16, 4, 1, 4, pathBaseColor);
-    // Add railings to prevent falling
-    this.createBox(17, 10.75, 16, 0.5, 1, 4, railingColor);
-    this.createBox(15, 10.75, 18, 4, 1, 0.5, railingColor);
-    this.createBox(13, 10.75, 16, 0.5, 1, 4, railingColor);
-    
-    // Fifth ramp - Going west (Story 4 to 5, height ~12.5)
-    this.createRamp(9, 11.25, 16, 10, 1, 4, 0.3, pathRampColor);
-    
-    // Fifth landing platform (Story 5, height ~12.5)
-    this.createBox(3, 12.5, 16, 4, 1, 4, pathBaseColor);
-    // Add railings to prevent falling
-    this.createBox(1, 13.25, 16, 0.5, 1, 4, railingColor);
-    this.createBox(3, 13.25, 18, 4, 1, 0.5, railingColor);
-    this.createBox(5, 13.25, 16, 0.5, 1, 4, railingColor);
-    
-    // Sixth ramp - Going north (Story 5 to 6, height ~15)
-    this.createRamp(3, 13.75, 11, 4, 1, 10, 0.3, pathRampColor);
-    
-    // Final platform (Story 6, height ~15) - observation deck
-    this.createBox(3, 15, 5, 8, 1, 8, pathBaseColor);
-    // Add railings all around for safety
-    this.createBox(3, 15.75, 1, 8, 1, 0.5, railingColor);
-    this.createBox(3, 15.75, 9, 8, 1, 0.5, railingColor);
-    this.createBox(-1, 15.75, 5, 0.5, 1, 8, railingColor);
-    this.createBox(7, 15.75, 5, 0.5, 1, 8, railingColor);
-    
-    // Add small cover structure at the top for tactical advantage
-    this.createBox(3, 16, 5, 4, 0.5, 4, pathAccentColor);
-    this.createBox(3, 17, 7, 4, 2, 0.5, pathAccentColor);
     
     // Bridge across the middle - extended
     this.createBox(0, 1, 0, 24, 0.5, 4, 0xaaaaaa);
@@ -540,51 +452,51 @@ class Game {
   }
   
   // Create a ramp obstacle with physics
-  createRamp(x, y, z, width, height, depth, angle, color) {
-    // Create visual mesh
+  createRamp(x, y, z, width, height, depth, color, angle, axis = 'x', reverse = false) {
+    // Create a box mesh for the ramp
     const geometry = new THREE.BoxGeometry(width, height, depth);
-    const material = new THREE.MeshStandardMaterial({
-      color: color,
-      roughness: 0.7,
-      metalness: 0.3
-    });
+    const material = new THREE.MeshStandardMaterial({ color });
     const ramp = new THREE.Mesh(geometry, material);
     
-    // Position
+    // Position the ramp
     ramp.position.set(x, y, z);
     
-    // Rotate to create a ramp
-    ramp.rotation.z = angle;
+    // Rotate the ramp based on the axis
+    if (axis === 'x') {
+      ramp.rotation.z = reverse ? -angle : angle;
+    } else if (axis === 'z') {
+      ramp.rotation.x = reverse ? angle : -angle;
+    }
     
-    // Enable shadows
+    // Cast and receive shadows
     ramp.castShadow = true;
     ramp.receiveShadow = true;
     
-    // Add to scene
+    // Add the ramp to the scene
     this.scene.add(ramp);
     
-    // Create physics body
-    const rampShape = new CANNON.Box(new CANNON.Vec3(width/2, height/2, depth/2));
-    const rampBody = new CANNON.Body({
-      mass: 0, // Static
+    // Create a corresponding physics body for the ramp
+    // We use a box shape for the physics body as well
+    const halfExtents = new CANNON.Vec3(width / 2, height / 2, depth / 2);
+    const shape = new CANNON.Box(halfExtents);
+    const body = new CANNON.Body({
+      mass: 0, // Static body
       position: new CANNON.Vec3(x, y, z),
-      shape: rampShape,
-      material: new CANNON.Material({
-        friction: 0.3,
-        restitution: 0.3
-      })
+      shape: shape,
+      material: this.physics.physicsMaterial
     });
     
-    // Apply the same rotation
-    const quaternion = new CANNON.Quaternion();
-    quaternion.setFromAxisAngle(new CANNON.Vec3(0, 0, 1), angle);
-    rampBody.quaternion = quaternion;
+    // Rotate the physics body to match the visual rotation
+    if (axis === 'x') {
+      body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 0, 1), reverse ? -angle : angle);
+    } else if (axis === 'z') {
+      body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), reverse ? angle : -angle);
+    }
     
-    // Add to physics world and link with mesh
-    this.physics.world.addBody(rampBody);
-    this.physics.linkBodyToMesh(rampBody, ramp, 'ramp');
+    // Add the body to the physics world
+    this.physics.world.addBody(body);
     
-    return { mesh: ramp, body: rampBody };
+    return { mesh: ramp, body: body };
   }
   
   // Create a special metallic box
@@ -629,6 +541,205 @@ class Game {
     this.physics.linkBodyToMesh(boxBody, box, 'dynamic');
     
     return { mesh: box, body: boxBody };
+  }
+  
+  // Create a vertical climbing path with connected ramps
+  createClimbingPath() {
+    console.log("Creating climbing path...");
+    
+    // Define the starting position for our climbing path
+    const startX = 30;
+    const startY = 0;
+    const startZ = 30;
+    
+    // Define colors for gradient effect from ground to sky
+    const groundColor = 0x8B4513; // Brown
+    const middleColor = 0x708090; // Slate gray
+    const topColor = 0x4682B4;    // Steel blue
+    
+    // Helper function to interpolate between colors
+    const interpolateColor = (colorA, colorB, factor) => {
+      const r1 = (colorA >> 16) & 255;
+      const g1 = (colorA >> 8) & 255;
+      const b1 = colorA & 255;
+      
+      const r2 = (colorB >> 16) & 255;
+      const g2 = (colorB >> 8) & 255;
+      const b2 = colorB & 255;
+      
+      const r = Math.round(r1 + factor * (r2 - r1));
+      const g = Math.round(g1 + factor * (g2 - g1));
+      const b = Math.round(b1 + factor * (b2 - b1));
+      
+      return (r << 16) | (g << 8) | b;
+    };
+    
+    // Create the base platform
+    this.createBox(
+      startX, startY + 0.5, startZ,
+      6, 1, 6,
+      groundColor,
+      0
+    );
+    
+    // First ramp - angled upward
+    this.createRamp(
+      startX + 3, startY + 2.5, startZ,
+      8, 1, 4,
+      interpolateColor(groundColor, middleColor, 0.2),
+      Math.PI / 8, // Gentle slope angle
+      'x'
+    );
+    
+    // First landing platform
+    this.createBox(
+      startX + 10, startY + 5, startZ,
+      4, 1, 4,
+      interpolateColor(groundColor, middleColor, 0.3),
+      0
+    );
+    
+    // Second ramp - angled upward and to the right
+    this.createRamp(
+      startX + 10, startY + 7.5, startZ + 4,
+      4, 1, 8,
+      interpolateColor(groundColor, middleColor, 0.4),
+      Math.PI / 8,
+      'z'
+    );
+    
+    // Second landing platform
+    this.createBox(
+      startX + 10, startY + 10, startZ + 12,
+      4, 1, 4,
+      interpolateColor(groundColor, middleColor, 0.5),
+      0
+    );
+    
+    // Third ramp - angled upward and to the left
+    this.createRamp(
+      startX + 6, startY + 12.5, startZ + 12,
+      8, 1, 4,
+      interpolateColor(groundColor, middleColor, 0.6),
+      Math.PI / 8,
+      'x',
+      true // reverse direction
+    );
+    
+    // Third landing platform
+    this.createBox(
+      startX - 2, startY + 15, startZ + 12,
+      4, 1, 4,
+      interpolateColor(groundColor, middleColor, 0.7),
+      0
+    );
+    
+    // Fourth ramp - angled upward and forward
+    this.createRamp(
+      startX - 2, startY + 17.5, startZ + 8,
+      4, 1, 8,
+      interpolateColor(middleColor, topColor, 0.3),
+      Math.PI / 8,
+      'z',
+      true // reverse direction
+    );
+    
+    // Fourth landing platform - larger rest area
+    this.createBox(
+      startX - 2, startY + 20, startZ,
+      6, 1, 6,
+      interpolateColor(middleColor, topColor, 0.5),
+      0
+    );
+    
+    // Fifth ramp - steeper for challenge
+    this.createRamp(
+      startX + 4, startY + 23, startZ,
+      8, 1, 4,
+      interpolateColor(middleColor, topColor, 0.7),
+      Math.PI / 6, // Steeper angle
+      'x'
+    );
+    
+    // Top platform - large area for the jumping course
+    this.createBox(
+      startX + 12, startY + 26, startZ,
+      8, 1, 12,
+      topColor,
+      0
+    );
+    
+    // Create jumping course at the top
+    this.createJumpingCourse(startX + 12, startY + 26.5, startZ);
+  }
+  
+  createJumpingCourse(baseX, baseY, baseZ) {
+    // Create a series of platforms with varying heights for jumping challenges
+    const platforms = [
+      { x: 0, y: 0, z: 4, width: 2, height: 0.5, depth: 2 },
+      { x: 3, y: 1, z: 6, width: 2, height: 0.5, depth: 2 },
+      { x: 6, y: 1.5, z: 4, width: 2, height: 0.5, depth: 2 },
+      { x: 8, y: 2, z: 1, width: 2, height: 0.5, depth: 2 },
+      { x: 6, y: 2.5, z: -2, width: 2, height: 0.5, depth: 2 },
+      { x: 3, y: 3, z: -4, width: 2, height: 0.5, depth: 2 },
+      { x: 0, y: 3.5, z: -6, width: 2, height: 0.5, depth: 2 },
+      { x: -3, y: 4, z: -4, width: 2, height: 0.5, depth: 2 },
+      { x: -6, y: 4.5, z: -2, width: 3, height: 0.5, depth: 3 }, // Reward platform
+    ];
+    
+    // Create each platform with a bluish color getting lighter towards the top
+    platforms.forEach((platform, index) => {
+      const progress = index / (platforms.length - 1);
+      const color = interpolateColor(0x4682B4, 0xADD8E6, progress);
+      
+      this.createBox(
+        baseX + platform.x,
+        baseY + platform.y,
+        baseZ + platform.z,
+        platform.width,
+        platform.height,
+        platform.depth,
+        color,
+        0
+      );
+    });
+    
+    // Add some reward objects on the final platform
+    const rewardColor = 0xFFD700; // Gold color
+    
+    // Create a few metallic boxes as "rewards" on the final platform
+    this.createBox(
+      baseX - 6,
+      baseY + 5.25,
+      baseZ - 2,
+      0.5,
+      0.5,
+      0.5,
+      rewardColor,
+      0.1 // Low mass to make it interactive
+    );
+    
+    this.createBox(
+      baseX - 6.5,
+      baseY + 5.25,
+      baseZ - 1.5,
+      0.5,
+      0.5,
+      0.5,
+      rewardColor,
+      0.1
+    );
+    
+    this.createBox(
+      baseX - 5.5,
+      baseY + 5.25,
+      baseZ - 2.5,
+      0.5,
+      0.5,
+      0.5,
+      rewardColor,
+      0.1
+    );
   }
   
   // Handle window resize
