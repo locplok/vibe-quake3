@@ -164,278 +164,47 @@ This document provides a step-by-step guide for AI developers to build a base ve
 
 ---
 
-## Technical Specifications and Infrastructure Details
+## Step 19: Player Name Display System
 
-### A1. Exact Dependencies and Versions
+#### 19.1: Player Name Input
+- Create a login screen or modal that appears before joining the game
+- Add an input field for the player name with validation (3-15 characters, alphanumeric)
+- Add local storage to remember the player's name between sessions
+- Implement a "Play" button that submits the name and connects to the server
+- Add a random name generator option for players who don't want to enter a name
 
-#### Frontend Dependencies
-- **three.js**: v0.152.0 - Core 3D rendering engine
-- **cannon-es**: v0.20.0 - Physics engine (modern ES module version of cannon.js)
-- **socket.io-client**: v4.7.2 - Client-side networking
-- **dat.gui**: v0.7.9 - Optional for debugging UI controls
+#### 19.2: Server-Side Name Management
+- Modify the socket connection handler to accept and store player names
+- Update the player data structure to include the name field
+- When broadcasting player join events, include the player's name
+- Add name validation on the server side (filter inappropriate content)
+- Update the `currentPlayers` event to include names of existing players
 
-#### Backend Dependencies
-- **Node.js**: v18.18.0 LTS or higher
-- **Express**: v4.18.2 - Web server framework
-- **socket.io**: v4.7.2 - Server-side networking
-- **dotenv**: v16.3.1 - Environment variable management
-- **cors**: v2.8.5 - Cross-origin resource sharing
+#### 19.3: Network Synchronization for Names
+- Update the `NetworkManager` class to send player name during initial connection
+- Modify the player data object to include name information
+- Update the serialization of player data to include the name field
+- Ensure name changes (if allowed later) are properly synchronized
 
-#### Development Dependencies
-- **Vite**: v4.4.9 - Development server and bundler
-- **TypeScript**: v5.2.2 - Type safety and improved developer experience
-- **ESLint**: v8.49.0 - Code quality control
-- **Jest**: v29.6.4 - Testing framework
+#### 19.4: Name Display Implementation
+- Create a HTML/CSS text element above each player model
+- Implement a 3D to 2D projection system to position the name relative to player models
+- Ensure the name text always faces the camera (billboarding technique)
+- Add appropriate styling (background, font, size) for legibility
+- Implement distance-based opacity (names fade at distance)
 
-### A2. Physics Optimization Strategies
+#### 19.5: Visual Polish and Options
+- Add a team color indicator next to names (for future team modes)
+- Implement hover effects to show additional player information
+- Add options to toggle name display or adjust opacity
+- Create visual effects for speaking players (future voice chat feature)
+- Add small icons for player status (health, active weapon)
 
-1. **Hierarchical Collision Detection**
-   - Implement a broad phase using spatial partitioning (grid or octree)
-   - Only perform detailed collision checks between potentially colliding objects
-
-2. **Physics Simulation Rate**
-   - Run physics at a fixed time step (e.g., 60Hz) independent of frame rate
-   - Apply interpolation for rendering between physics steps
-
-3. **Object Simplification**
-   - Use simplified collision shapes (sphere, box) even for complex visual meshes
-   - Implement compound shapes only for critical gameplay elements
-
-4. **Sleeping Objects**
-   - Enable automatic sleeping for stationary objects to reduce CPU usage
-   - Wake objects only when forces are applied or collisions occur
-
-5. **Constraint Solving**
-   - Limit solver iterations to 10-20 for a balance of accuracy and performance
-   - Use a lower iteration count for less important physics interactions
-
-### A3. Recommended Project Structure
-
-This plan builds a functional base game with movement, combat, and multiplayer features. Each step ensures incremental progress, validated by clear tests, setting the stage for future enhancements like advanced movement or additional weapons.
-
-### A4. Network Latency and Synchronization Approaches
-
-1. **Client-Side Prediction**
-   - Apply input immediately on the client without waiting for server response
-   - Update local position based on physics simulation
-   - Apply server corrections when received, smoothing discrepancies
-
-2. **Server Reconciliation**
-   - Send input commands with timestamp to server
-   - Server processes commands in correct sequence
-   - Client replays inputs from last acknowledged server state when correction received
-
-3. **Entity Interpolation**
-   - Server sends position updates at fixed intervals (e.g., 10Hz)
-   - Client interpolates between received positions for smooth movement
-   - Use buffer of 100-200ms to handle network jitter
-
-4. **Lag Compensation**
-   - Server maintains history of entity positions (last ~200ms)
-   - When processing shot events, rewind world state to time of client input
-   - Check hit detection against historical positions
-
-5. **Delta Compression**
-   - Only send data that has changed since last update
-   - Use binary formats rather than JSON for network transmission
-   - Implement message batching for multiple small updates
-
-### A5. Asset Loading and Management
-
-1. **Asset Types and Organization**
-   - Textures: PNG/WebP format, power-of-two dimensions (512×512, 1024×1024)
-   - Models: GLTF format (preferred), low-poly with 1000-3000 triangles per player model
-   - Audio: MP3 format for music, WebM or MP3 for sound effects
-
-2. **Loading Strategy**
-   - Implement progressive loading with priority levels
-   - Critical assets loaded at startup (player model, weapons, basic textures)
-   - Map-specific assets loaded during map transition
-   - Use of asset bundle concept for grouping related assets
-
-3. **Asset Manager Implementation**
-   - Create centralized AssetManager class to handle all asset operations
-   - Implement preloading, caching, and reference counting
-   - Support for hot-swapping assets during development
-
-4. **Performance Considerations**
-   - Texture atlasing for UI elements and similar textures
-   - Implement level-of-detail (LOD) for models based on distance
-   - Garbage collection management with object pooling for frequently used assets
-
-5. **Loading Feedback**
-   - Implement loading progress bar showing percentage complete
-   - Display asset loading errors in console with suggestions
-   - Add debug mode to show asset loading times and memory usage
-
-### A6. Error Handling for Networking
-
-1. **Connection Handling**
-   - Detect disconnections with 5-second heartbeat mechanism
-   - Implement exponential backoff for reconnection attempts (initial: 1s, max: 60s)
-   - Show connection status indicator in UI (connected, connecting, disconnected)
-
-2. **Message Validation**
-   - Validate all incoming messages with schema validation
-   - Set maximum message size (e.g., 16KB) to prevent abuse
-   - Implement message sequence numbers to detect missing packets
-
-3. **Error Recovery Strategies**
-   - Server: Keep disconnected player state for 60 seconds before cleanup
-   - Client: Cache last 10 seconds of game state for restoration after reconnection
-   - Implement "ghost" representation for temporarily disconnected players
-
-4. **Security Measures**
-   - Implement rate limiting on message types (max 60 position updates/second)
-   - Server authority validation for critical game events (damage, item pickup)
-   - Basic sanity checks for physics (max speed, position boundaries)
-
-5. **Logging and Monitoring**
-   - Implement detailed logging for connection events and errors
-   - Capture client-side errors and network statistics
-   - Record unusual behaviors (teleporting, speed anomalies) for review
-
-### A7. Minimum Client Requirements
-
-1. **Hardware Requirements**
-   - CPU: Dual-core 2.0GHz or better
-   - RAM: 4GB minimum, 8GB recommended
-   - GPU: WebGL 2.0 compatible graphics card with 1GB VRAM
-   - Storage: 100MB available space
-   - Network: Broadband internet connection (1Mbps minimum)
-
-2. **Software Requirements**
-   - Browser: Chrome 90+, Firefox 88+, Edge 90+, Safari 15+
-   - WebGL 2.0 support required
-   - JavaScript enabled
-   - Cookies enabled for session management
-
-3. **Performance Targets**
-   - Minimum: 30 FPS at 720p resolution
-   - Recommended: 60 FPS at 1080p resolution
-   - Network latency under 150ms for optimal experience
-
-4. **Feature Detection and Fallbacks**
-   - Implement WebGL feature detection at startup
-   - Provide graphics quality presets (Low, Medium, High)
-   - Graceful degradation for older hardware (simplified physics, reduced particles)
-
-5. **Accessibility Considerations**
-   - Support for custom key bindings
-   - Configurable mouse sensitivity
-   - Color-blind friendly UI option
-   - Text size adjustment
-
-### A8. Testing Framework Recommendations
-
-1. **Unit Testing**
-   - Jest for general JavaScript/TypeScript testing
-   - Focus on core systems: physics calculations, game logic, networking
-
-2. **Integration Testing**
-   - Test interaction between systems (physics + input, networking + game state)
-   - Mock Socket.IO for network testing
-
-3. **End-to-End Testing**
-   - Cypress for browser automation
-   - Test complete game flow with simulated players
-
-4. **Performance Testing**
-   - Track FPS, memory usage, and network metrics
-   - Stress test with multiple connections (10-50 simultaneous players)
-   - Implement performance budget monitoring
-
-5. **Test Organization**
-   - Group tests by feature/component
-   - Implement snapshot testing for UI components
-   - CI pipeline integration with GitHub Actions
-   - Daily automated test runs on development branch
-
-### A9. Build Process and Deployment Pipeline
-
-1. **Build Process**
-   - Use Vite for frontend bundling
-   - TypeScript compilation with strict mode enabled
-   - Asset optimization: texture compression, code minification
-   - Environment-specific configuration (dev, staging, production)
-
-2. **CI/CD Pipeline**
-   - GitHub Actions workflow
-   - Triggered on pull requests and main branch commits
-   - Automated testing before deployment
-
-3. **Deployment Targets**
-   - Development: Local environment with hot reloading
-   - Staging: Vercel or Netlify preview deployments
-   - Production: Docker containers on DigitalOcean or AWS
-
-4. **Monitoring and Logging**
-   - Server metrics: CPU, memory, network usage
-   - Application logs with structured logging format
-   - Error tracking with Sentry or similar service
-   - Performance monitoring with custom dashboard
-
-5. **Release Management**
-   - Semantic versioning (MAJOR.MINOR.PATCH)
-   - Automated changelog generation
-   - Rollback capability for production issues
-   - Blue/green deployment strategy
-
-### A10. Timeline and Milestones
-
-1. **Phase 1: Core Rendering and Physics (Weeks 1-2)**
-   - Setup project structure and dependencies
-   - Implement Three.js rendering pipeline
-   - Basic physics integration with Cannon.js
-   - Single-player movement and controls
-
-2. **Phase 2: Networking Foundation (Weeks 3-4)**
-   - Server implementation with Express and Socket.IO
-   - Basic client-server communication
-   - Player synchronization across clients
-   - Simple collision detection
-
-3. **Phase 3: Game Mechanics (Weeks 5-6)**
-   - Shooting mechanism and hit detection
-   - Health system and damage calculation
-   - Player respawn functionality
-   - Basic UI elements
-
-4. **Phase 4: Map and Environment (Weeks 7-8)**
-   - Simple map creation
-   - Environmental collision
-   - Basic lighting and materials
-   - Performance optimization
-
-5. **Phase 5: Testing and Polish (Weeks 9-10)**
-   - Comprehensive testing
-   - Bug fixing and refinement
-   - Performance tuning
-   - Documentation completion
-   - Initial release (v0.1.0)
+**Test:** Enter different player names on multiple clients. Each client should see their own name and the names of other players floating above the corresponding avatars, with the names following player movements in real-time.
 
 ---
 
-This plan builds a functional base game with movement, combat, and multiplayer features. Each step ensures incremental progress, validated by clear tests, setting the stage for future enhancements like advanced movement or additional weapons.
-
-## Next Implementation Steps
-
-Now that we have completed the essential functionality of the game, including core rendering, player movement, shooting mechanics, and basic multiplayer functionality, we can focus on enhancing the game with more advanced features.
-
-### Step 19: Enhanced Health and Armor System
-- Add health pickups that spawn at predefined locations in the map.
-- Implement health pickup visuals (floating/rotating model with glow effect).
-- Create a pickup interaction system that detects when a player walks over a pickup.
-- Add a respawn timer for health pickups (e.g., 30 seconds after being collected).
-- Implement an armor system that reduces damage taken by a percentage.
-- Add armor pickups similar to health pickups.
-- Display armor value in the UI alongside health.
-
-**Test:** Collect a health pickup; player's health should increase. Take damage with armor; damage should be reduced.
-
----
-
-### Step 20: Jump Pads and Environmental Interactions
+## Step 20: Jump Pads and Environmental Interactions
 - Create jump pad objects that launch players upward when stepped on.
 - Add visual effects for jump pads (glowing base, particles).
 - Implement sound effects for jump pad activation.
@@ -447,7 +216,47 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 21: Advanced Weapon System
+## Step 21: Player Name Display System
+
+#### 21.1: Player Name Input
+- Create a login screen or modal that appears before joining the game
+- Add an input field for the player name with validation (3-15 characters, alphanumeric)
+- Add local storage to remember the player's name between sessions
+- Implement a "Play" button that submits the name and connects to the server
+- Add a random name generator option for players who don't want to enter a name
+
+#### 21.2: Server-Side Name Management
+- Modify the socket connection handler to accept and store player names
+- Update the player data structure to include the name field
+- When broadcasting player join events, include the player's name
+- Add name validation on the server side (filter inappropriate content)
+- Update the `currentPlayers` event to include names of existing players
+
+#### 21.3: Network Synchronization for Names
+- Update the `NetworkManager` class to send player name during initial connection
+- Modify the player data object to include name information
+- Update the serialization of player data to include the name field
+- Ensure name changes (if allowed later) are properly synchronized
+
+#### 21.4: Name Display Implementation
+- Create a HTML/CSS text element above each player model
+- Implement a 3D to 2D projection system to position the name relative to player models
+- Ensure the name text always faces the camera (billboarding technique)
+- Add appropriate styling (background, font, size) for legibility
+- Implement distance-based opacity (names fade at distance)
+
+#### 21.5: Visual Polish and Options
+- Add a team color indicator next to names (for future team modes)
+- Implement hover effects to show additional player information
+- Add options to toggle name display or adjust opacity
+- Create visual effects for speaking players (future voice chat feature)
+- Add small icons for player status (health, active weapon)
+
+**Test:** Enter different player names on multiple clients. Each client should see their own name and the names of other players floating above the corresponding avatars, with the names following player movements in real-time.
+
+---
+
+## Step 22: Advanced Weapon System
 - Implement multiple weapon types with different characteristics:
   - Shotgun (short range, wide spread, high damage)
   - Rocket launcher (projectile-based, splash damage)
@@ -462,7 +271,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 22: Advanced UI Improvements
+## Step 23: Advanced UI Improvements
 - Implement a kill feed that displays recent eliminations.
 - Create an in-game scoreboard (toggled with Tab key) showing player scores.
 - Add player names displayed above player models.
@@ -475,7 +284,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 23: Match Management System
+## Step 24: Match Management System
 - Implement match timing with countdown and time limit.
 - Add different game modes (Deathmatch, Team Deathmatch, Capture the Flag).
 - Create a match start countdown and end-of-match state.
@@ -488,7 +297,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 24: Sound System Enhancement
+## Step 25: Sound System Enhancement
 - Add positional audio for player actions (footsteps, jumps, shots).
 - Implement different sound effects for each weapon type.
 - Add ambient sounds for the environment.
@@ -501,7 +310,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 25: Performance Optimization
+## Step 26: Performance Optimization
 - Implement level of detail (LOD) system for distant objects.
 - Add object culling for off-screen entities.
 - Optimize network traffic by prioritizing updates for nearby players.
@@ -514,7 +323,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 26: Mobile Device Support
+## Step 27: Mobile Device Support
 - Implement responsive design for different screen sizes.
 - Create touch controls for mobile devices.
 - Add virtual joysticks for movement and looking.
@@ -527,9 +336,9 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 26: Comprehensive Mobile Device Support
+## Step 28: Comprehensive Mobile Device Support
 
-#### 26.1: Mobile Detection and Responsive Design
+#### 28.1: Mobile Detection and Responsive Design
 - Implement viewport meta tags for proper scaling: `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">`
 - Create device detection using User-Agent or feature detection to identify mobile browsers
 - Add orientation handling (landscape required/preferred) with appropriate UI for each orientation
@@ -538,7 +347,7 @@ Now that we have completed the essential functionality of the game, including co
 
 **Test:** Load the game on different mobile devices; it should correctly detect the device type and apply appropriate settings.
 
-#### 26.2: Touch Control System
+#### 28.2: Touch Control System
 - Develop left-side virtual joystick for movement (WASD equivalent)
 - Create right-side look area for camera control with adjustable sensitivity
 - Implement tap-to-shoot with configurable auto-fire for continuous shooting
@@ -548,7 +357,7 @@ Now that we have completed the essential functionality of the game, including co
 
 **Test:** Control the player using touch inputs; movement should be smooth and precise. Aiming and shooting should feel responsive and accurate.
 
-#### 26.3: Mobile-Specific UI Adaptations
+#### 28.3: Mobile-Specific UI Adaptations
 - Design larger UI elements with adequate touch areas (minimum 44×44px targets)
 - Create heads-up display that scales appropriately for different screen sizes
 - Implement collapsible/expandable controls to maximize gameplay view
@@ -558,7 +367,7 @@ Now that we have completed the essential functionality of the game, including co
 
 **Test:** All UI elements should be clearly visible and easily touchable on devices with 4.7" screens and larger.
 
-#### 26.4: Mobile Performance Optimizations
+#### 28.4: Mobile Performance Optimizations
 - Implement dynamic resolution scaling based on device performance
 - Create mobile-specific graphics presets (low, medium, high)
 - Reduce particle count and effect complexity on mobile
@@ -569,7 +378,7 @@ Now that we have completed the essential functionality of the game, including co
 
 **Test:** The game should maintain at least 30fps on mid-range mobile devices. Battery consumption should be reasonable for extended play sessions.
 
-#### 26.5: Mobile Network Considerations
+#### 28.5: Mobile Network Considerations
 - Implement more aggressive client-side prediction for higher latency connections
 - Add connection quality indicator with adaptive network settings
 - Optimize network packet size for mobile data usage
@@ -581,7 +390,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 27: Advanced Visual Effects
+## Step 29: Advanced Visual Effects
 - Add particle systems for impacts, explosions, and environmental effects.
 - Implement dynamic lighting for weapon fire, explosions, and environment.
 - Add screen-space effects (motion blur, damage vignette).
@@ -594,7 +403,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 28: Bot System for Single Player
+## Step 30: Bot System for Single Player
 - Implement AI-controlled bots that navigate the map.
 - Create path-finding system using navigation meshes.
 - Add bot decision-making for target selection and weapon usage.
@@ -607,7 +416,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 29: Social Features
+## Step 31: Social Features
 - Implement friends list system.
 - Add private messaging between players.
 - Create party system for joining games together.
@@ -620,7 +429,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Step 30: Map Editor and Custom Content
+## Step 32: Map Editor and Custom Content
 - Create a basic in-game map editor.
 - Implement saving and loading of custom maps.
 - Add tools for placing objects, spawns, and pickups.
@@ -633,7 +442,7 @@ Now that we have completed the essential functionality of the game, including co
 
 ---
 
-### Technical Considerations for Advanced Features
+## Technical Considerations for Advanced Features
 
 1. **Network Optimization**
    - Implement a network message batching system
