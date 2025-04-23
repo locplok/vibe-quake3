@@ -7,6 +7,7 @@ export class NetworkManager {
     this.socket = null;
     this.players = {};
     this.connected = false;
+    this.playerName = '';
     
     // When using Vite proxy, we can just use relative URL for Socket.IO connection
     this.serverUrl = window.location.hostname === 'localhost' 
@@ -21,23 +22,21 @@ export class NetworkManager {
     this._receivedFirstHealthUpdate = false;
   }
   
-  // Initialize connection to the server
-  connect() {
-    if (this.socket) {
-      console.log('Socket connection already exists');
-      return;
+  // Helper log function that only prints when debug is true
+  log(...args) {
+    if (this.debug) {
+      console.log(...args);
     }
+  }
+  
+  // Connect to the game server
+  connect(playerName = '') {
+    // Store the player name
+    this.playerName = playerName || 'Player' + Math.floor(Math.random() * 1000);
+    console.log(`Connecting to server as: ${this.playerName}`);
     
-    this.log('Connecting to server:', this.serverUrl);
-    
-    // Always use the explicit Render URL in production
-    // On Vercel, window.location.hostname is NOT localhost, so we must use the explicit URL
-    this.socket = window.location.hostname === 'localhost' 
-      ? io() // Use Vite proxy for local development only
-      : io('https://vibe-quake3-server.onrender.com', {
-          withCredentials: false,
-          transports: ['websocket', 'polling']
-        }); // Always use explicit URL for production
+    // Create Socket.IO connection
+    this.socket = io(this.serverUrl);
     
     // Set up event listeners
     this.setupEventListeners();
@@ -55,6 +54,9 @@ export class NetworkManager {
       console.log("==== SOCKET CONNECTED ====");
       console.log("Socket ID:", this.socket.id);
       console.log("Connected to server:", this.serverUrl);
+      
+      // Send player name to server
+      this.socket.emit('playerName', this.playerName);
       
       // Initialize frag counter
       this.updateFragDisplay(0);
@@ -147,65 +149,57 @@ export class NetworkManager {
       }
     });
     
-    // Health update
+    // Health update (for us or other players)
     this.socket.on('healthUpdate', (healthInfo) => {
-      this.log('Health update received:', healthInfo);
-      console.log(`FULL HEALTH UPDATE OBJECT: ${JSON.stringify(healthInfo)}`);
+      console.log(`RECEIVED HEALTH UPDATE for player ${healthInfo.id}:`, healthInfo);
       
+      // If it's for us, update our health display
       if (healthInfo.id === this.socket.id && this.game.player) {
-        // Update our own health and armor
-        const oldHealth = this.game.player.health;
-        const oldArmor = this.game.player.armor || 0;
+        console.log(`Updating our health to ${healthInfo.health} and armor to ${healthInfo.armor}`);
         
-        console.log(`==== HEALTH UPDATE FROM SERVER ====`);
-        console.log(`Player ID: ${healthInfo.id} (our player)`);
-        console.log(`Current state: Health=${oldHealth}, Armor=${oldArmor}`);
-        console.log(`New values: Health=${healthInfo.health}, Armor=${healthInfo.armor}`);
-        console.log(`Armor value type: ${typeof healthInfo.armor}`);
-        console.log(`Object has armor property: ${healthInfo.hasOwnProperty('armor')}`);
-        
-        // Always update health
-        this.game.player.health = Math.round(healthInfo.health);
-        
-        // FIX: Only update armor if the server actually specifies a value
-        // Do not set armor to 0 when it's undefined
-        if (healthInfo.armor !== undefined) {
-          console.log(`Setting armor to server-provided value: ${healthInfo.armor}`);
-          this.game.player.armor = Math.round(healthInfo.armor);
-        } else {
-          console.log(`Server did not specify armor, keeping current value: ${oldArmor}`);
-          console.log(`WARNING: Server sent undefined armor value. This should not happen!`);
-          
-          // DEBUG: Request a sync from server to get correct values
-          if (this.socket) {
-            console.log("Requesting health update from server to fix missing armor value");
-            this.socket.emit('requestHealthUpdate');
-          }
+        // If this is the first health update, save the armor value
+        if (!this._receivedFirstHealthUpdate) {
+          this._receivedFirstHealthUpdate = true;
+          console.log(`First health update received with armor: ${healthInfo.armor}`);
         }
         
-        // Update displays
+        // Update player health
+        this.game.player.health = healthInfo.health;
+        
+        // Only update armor if it's defined
+        if (healthInfo.armor !== undefined) {
+          this.game.player.armor = healthInfo.armor;
+        } else {
+          console.warn("Server sent health update without armor value!");
+        }
+        
+        // Update UI
         this.game.player.updateHealthDisplay();
         this.game.player.updateArmorDisplay();
         
-        console.log(`Health ${oldHealth !== this.game.player.health ? 'changed' : 'unchanged'}: ${oldHealth} → ${this.game.player.health}`);
-        console.log(`Armor ${oldArmor !== this.game.player.armor ? 'changed' : 'unchanged'}: ${oldArmor} → ${this.game.player.armor}`);
-        console.log(`==== HEALTH UPDATE APPLIED ====`);
-      } else if (this.players[healthInfo.id]) {
-        // Update other player's health
-        const oldHealth = this.players[healthInfo.id].health || 0;
-        const oldArmor = this.players[healthInfo.id].armor || 0;
-        
-        console.log(`Player ${healthInfo.id} health/armor update: Health ${oldHealth} → ${healthInfo.health}, Armor ${oldArmor} → ${healthInfo.armor}`);
-        
-        // Update stored values
-        this.players[healthInfo.id].health = Math.round(healthInfo.health);
-        
-        // Only update armor if a value is provided
-        if (healthInfo.armor !== undefined) {
-          this.players[healthInfo.id].armor = Math.round(healthInfo.armor);
+        // Flash screen red if took damage
+        if (this.game.player.lastHealth > healthInfo.health) {
+          this.game.player.showDamage();
         }
-      } else {
-        console.log(`Received health update for unknown player: ${healthInfo.id}`);
+        
+        // Store current health for next comparison
+        this.game.player.lastHealth = healthInfo.health;
+      } 
+      // If it's for another player, store it
+      else if (this.players[healthInfo.id]) {
+        this.players[healthInfo.id].health = healthInfo.health;
+        
+        // Only update armor if it's defined
+        if (healthInfo.armor !== undefined) {
+          this.players[healthInfo.id].armor = healthInfo.armor;
+        }
+      }
+    });
+    
+    // Frag count update
+    this.socket.on('fragUpdate', (fragInfo) => {
+      if (fragInfo.id === this.socket.id) {
+        this.updateFragDisplay(fragInfo.frags);
       }
     });
     
@@ -256,25 +250,28 @@ export class NetworkManager {
       // Remove from players object
       delete this.players[playerId];
     });
-    
-    // Frag update (when a player gets a kill)
-    this.socket.on('fragUpdate', (fragInfo) => {
-      console.log(`==== FRAG UPDATE RECEIVED ====`);
-      console.log(`Player ${fragInfo.id} now has ${fragInfo.frags} frags`);
+  }
+  
+  // Helper method to update the frag display
+  updateFragDisplay(frags) {
+    // If we don't already have a frag counter, create one
+    if (!document.getElementById('frag-counter')) {
+      const fragCounter = document.createElement('div');
+      fragCounter.id = 'frag-counter';
+      fragCounter.style.position = 'absolute';
+      fragCounter.style.top = '20px';
+      fragCounter.style.right = '20px';
+      fragCounter.style.color = 'white';
+      fragCounter.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      fragCounter.style.padding = '5px 10px';
+      fragCounter.style.borderRadius = '5px';
+      fragCounter.style.fontFamily = 'Arial';
       
-      // Update frags for the player who got the kill
-      if (this.players[fragInfo.id]) {
-        this.players[fragInfo.id].frags = fragInfo.frags;
-        
-        // If this is our own frag update, display it prominently
-        if (fragInfo.id === this.socket.id && this.game.player) {
-          console.log(`YOU FRAGGED A PLAYER! Total frags: ${fragInfo.frags}`);
-          
-          // Update or create the frag counter display
-          this.updateFragDisplay(fragInfo.frags);
-        }
-      }
-    });
+      document.getElementById('ui-container').appendChild(fragCounter);
+    }
+    
+    // Update the frag count display
+    document.getElementById('frag-counter').textContent = `Frags: ${frags}`;
   }
   
   // Send player movement update to the server
@@ -405,20 +402,8 @@ export class NetworkManager {
       
       return true;
     } catch (error) {
-      console.error('Error sending hit event:', error);
-      
-      // Try sending with a simpler method as fallback
-      try {
-        this.socket.emit('playerHit', {
-          id: hitPlayerId,
-          damage: damage
-        });
-        console.log(`Hit sent with fallback method`);
-        return true;
-      } catch (fallbackError) {
-        console.error('Fallback hit sending also failed:', fallbackError);
-        return false;
-      }
+      console.error('Error sending hit to server:', error);
+      return false;
     }
   }
   
@@ -434,99 +419,146 @@ export class NetworkManager {
   
   // Create a 3D model for a specific player
   createPlayerModel(playerInfo) {
-    // Skip if this is our own player
+    // Only create models for other players
     if (playerInfo.id === this.socket.id) return;
     
-    // Skip if model already exists
-    if (this.playerModels[playerInfo.id]) return;
+    // Remove existing model if there is one
+    this.removePlayerModel(playerInfo.id);
     
-    // Create a simple colored capsule for other players
-    const geometry = new THREE.CapsuleGeometry(0.5, 1.2, 4, 8);
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xff0000, // Red color for other players
-      roughness: 0.7,
-      metalness: 0.3
-    });
+    // Create a simple capsule geometry for the player model
+    const geometry = new THREE.CapsuleGeometry(0.5, 1.0, 4, 8);
+    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red for other players
+    const playerModel = new THREE.Mesh(geometry, material);
     
-    const model = new THREE.Mesh(geometry, material);
-    model.name = 'other-player'; // Add a consistent name for hit detection
-    
-    // Store player ID in the mesh's userData for hit detection
-    model.userData = {
-      playerId: playerInfo.id
-    };
-    
-    console.log(`Created player model with ID ${playerInfo.id} stored in userData`);
-    
-    // Position at the player's location
+    // Position the model
     if (playerInfo.position) {
-      model.position.set(
+      playerModel.position.set(
         playerInfo.position.x,
-        playerInfo.position.y + 1, // Adjust to match player height
+        playerInfo.position.y,
         playerInfo.position.z
       );
     }
     
-    // Add to scene
-    this.game.scene.add(model);
-    
-    // Store the model
-    this.playerModels[playerInfo.id] = model;
-    
-    this.log('Created model for player:', playerInfo.id);
-  }
-  
-  // Update a player model's position and rotation
-  updatePlayerModel(playerInfo) {
-    // If we don't have a model for this player, try to create one
-    if (!this.playerModels[playerInfo.id]) {
-      this.createPlayerModel(playerInfo);
-      return;
+    // Rotate the model
+    if (playerInfo.rotation !== undefined) {
+      playerModel.rotation.y = playerInfo.rotation;
     }
     
+    // Cast shadows
+    playerModel.castShadow = true;
+    
+    // Add to scene
+    this.game.scene.add(playerModel);
+    
+    // Store reference
+    this.playerModels[playerInfo.id] = playerModel;
+    
+    console.log(`Created model for player ${playerInfo.id}`);
+    
+    // Create player name element
+    this.createPlayerNameTag(playerInfo);
+  }
+  
+  // Create a player name tag above their model
+  createPlayerNameTag(playerInfo) {
+    // Check if we have a name for this player
+    const playerName = playerInfo.name || `Player ${playerInfo.id.substring(0, 4)}`;
+    
+    // Create a div for the player name if it doesn't exist
+    let nameElement = document.getElementById(`player-name-${playerInfo.id}`);
+    
+    if (!nameElement) {
+      nameElement = document.createElement('div');
+      nameElement.id = `player-name-${playerInfo.id}`;
+      nameElement.className = 'player-name';
+      nameElement.textContent = playerName;
+      document.getElementById('ui-container').appendChild(nameElement);
+    }
+  }
+  
+  // Update a player model with new position/rotation
+  updatePlayerModel(playerInfo) {
     const model = this.playerModels[playerInfo.id];
+    if (!model) return;
     
     // Update position
     if (playerInfo.position) {
-      // Validate position values
-      const pos = playerInfo.position;
-      if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
-        console.error(`Invalid position values for player ${playerInfo.id}:`, pos);
-        return;
-      }
-      
-      // Update model position - y is offset for the character height
       model.position.set(
-        pos.x,
-        pos.y + 1, // Adjust to match player height
-        pos.z
+        playerInfo.position.x,
+        playerInfo.position.y,
+        playerInfo.position.z
       );
     }
     
-    // Update rotation (Y-axis only)
-    if (playerInfo.rotation !== undefined && !isNaN(playerInfo.rotation)) {
+    // Update rotation
+    if (playerInfo.rotation !== undefined) {
       model.rotation.y = playerInfo.rotation;
     }
+    
+    // Update player name tag position
+    this.updatePlayerNameTagPosition(playerInfo.id);
+  }
+  
+  // Update the position of a player's name tag
+  updatePlayerNameTagPosition(playerId) {
+    const nameElement = document.getElementById(`player-name-${playerId}`);
+    const model = this.playerModels[playerId];
+    
+    if (!nameElement || !model) return;
+    
+    // Project the 3D position to 2D screen coordinates
+    const modelPosition = new THREE.Vector3(
+      model.position.x,
+      model.position.y + 2.0, // Position above the player's head
+      model.position.z
+    );
+    
+    // Project to 2D space
+    modelPosition.project(this.game.camera);
+    
+    // Convert to screen coordinates
+    const x = (modelPosition.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (modelPosition.y * -0.5 + 0.5) * window.innerHeight;
+    
+    // Check if the name tag is in front of the camera
+    const isBehindCamera = modelPosition.z > 1;
+    
+    // Update name tag position
+    nameElement.style.left = `${x}px`;
+    nameElement.style.top = `${y}px`;
+    
+    // Calculate distance from camera to player for opacity
+    const distance = this.game.camera.position.distanceTo(model.position);
+    const opacity = Math.max(0, Math.min(1, 1 - (distance - 5) / 15)); // Fade between 5-20 units
+    
+    // Update opacity based on distance and visibility
+    nameElement.style.opacity = isBehindCamera ? '0' : opacity.toString();
   }
   
   // Remove a player model
   removePlayerModel(playerId) {
-    if (!this.playerModels[playerId]) return;
+    // Remove the model from the scene
+    if (this.playerModels[playerId]) {
+      this.game.scene.remove(this.playerModels[playerId]);
+      delete this.playerModels[playerId];
+    }
     
-    // Remove from scene
-    this.game.scene.remove(this.playerModels[playerId]);
+    // Remove the name tag
+    const nameElement = document.getElementById(`player-name-${playerId}`);
+    if (nameElement) {
+      nameElement.remove();
+    }
     
-    // Delete reference
-    delete this.playerModels[playerId];
-    
-    this.log('Removed model for player:', playerId);
+    console.log(`Removed model for player ${playerId}`);
   }
   
-  // Visualize a shot fired by another player
+  // Visualize a shot from another player
   visualizeShot(shotInfo) {
-    if (!this.game.player || !this.game.player.weapons) return;
+    if (!shotInfo.origin || !shotInfo.direction) {
+      console.error('Invalid shot data:', shotInfo);
+      return;
+    }
     
-    // Convert shot data to THREE.Vector3 objects
     const origin = new THREE.Vector3(
       shotInfo.origin.x,
       shotInfo.origin.y,
@@ -537,24 +569,46 @@ export class NetworkManager {
       shotInfo.direction.x,
       shotInfo.direction.y,
       shotInfo.direction.z
-    ).normalize();
-    
-    // Use the weapons system to visualize the shot
-    this.game.player.weapons.createBulletTrail(
-      origin,
-      origin.clone().add(direction.multiplyScalar(1000))
     );
+    
+    // Normalize the direction
+    direction.normalize();
+    
+    // Calculate endpoint (arbitrary distance of 100 units)
+    const endpoint = new THREE.Vector3().copy(origin).add(direction.multiplyScalar(100));
+    
+    // Create bullet trail geometry
+    const bulletGeometry = new THREE.BufferGeometry().setFromPoints([
+      origin,
+      endpoint
+    ]);
+    
+    // Create bullet trail material
+    const bulletMaterial = new THREE.LineBasicMaterial({
+      color: 0xffff00,
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    // Create the bullet trail
+    const bulletTrail = new THREE.Line(bulletGeometry, bulletMaterial);
+    
+    // Add to scene
+    this.game.scene.add(bulletTrail);
+    
+    // Remove bullet trail after a short time
+    setTimeout(() => {
+      this.game.scene.remove(bulletTrail);
+      bulletTrail.geometry.dispose();
+      bulletMaterial.dispose();
+    }, 100);
   }
   
-  // Update method to be called from the game loop
-  update(deltaTime) {
-    // Any continuous network tasks can go here
-  }
-  
-  // Logging helper
-  log(...args) {
-    if (this.debug) {
-      console.log('[Network]', ...args);
+  // Update method called each frame
+  update() {
+    // Update player name tag positions
+    for (const playerId in this.playerModels) {
+      this.updatePlayerNameTagPosition(playerId);
     }
   }
   
@@ -570,45 +624,16 @@ export class NetworkManager {
       this.game.scene.remove(this.playerModels[id]);
     }
     
+    // Remove all player name tags
+    for (const id in this.players) {
+      const nameElement = document.getElementById(`player-name-${id}`);
+      if (nameElement) {
+        nameElement.remove();
+      }
+    }
+    
     this.playerModels = {};
     this.players = {};
     this.connected = false;
-  }
-  
-  // Create or update the frag counter display
-  updateFragDisplay(frags) {
-    // Find or create the frag counter element
-    let fragCounter = document.getElementById('frag-counter');
-    
-    if (!fragCounter) {
-      // Create frag counter if it doesn't exist
-      fragCounter = document.createElement('div');
-      fragCounter.id = 'frag-counter';
-      fragCounter.style.position = 'absolute';
-      fragCounter.style.top = '20px';
-      fragCounter.style.right = '20px';
-      fragCounter.style.padding = '10px';
-      fragCounter.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-      fragCounter.style.color = '#ff9900';
-      fragCounter.style.fontFamily = 'Arial, sans-serif';
-      fragCounter.style.fontSize = '24px';
-      fragCounter.style.fontWeight = 'bold';
-      fragCounter.style.borderRadius = '5px';
-      fragCounter.style.zIndex = '1000';
-      fragCounter.style.textShadow = '1px 1px 0 #000';
-      document.body.appendChild(fragCounter);
-    }
-    
-    // Update the content
-    fragCounter.textContent = `FRAGS: ${frags}`;
-    
-    // Animation effect for frag update
-    fragCounter.style.transform = 'scale(1.5)';
-    fragCounter.style.transition = 'transform 0.2s';
-    
-    // Reset scale after animation
-    setTimeout(() => {
-      fragCounter.style.transform = 'scale(1)';
-    }, 200);
   }
 } 

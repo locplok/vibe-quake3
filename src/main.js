@@ -6,9 +6,98 @@ import { NetworkManager } from './network.js';
 import { PickupManager } from './pickups.js';
 import * as CANNON from 'cannon-es';
 
+// Player name login handler
+class LoginHandler {
+  constructor(onNameSubmit) {
+    this.onNameSubmit = onNameSubmit;
+    this.nameInput = document.getElementById('name-input');
+    this.loginForm = document.getElementById('login-form');
+    this.randomNameBtn = document.getElementById('random-name');
+    this.errorMessage = document.getElementById('error-message');
+    
+    this.setupEventListeners();
+    this.checkSavedName();
+  }
+  
+  setupEventListeners() {
+    // Handle form submission
+    this.loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.submitName();
+    });
+    
+    // Handle random name generation
+    this.randomNameBtn.addEventListener('click', () => {
+      this.generateRandomName();
+    });
+  }
+  
+  // Check if we already have a saved name
+  checkSavedName() {
+    const savedName = localStorage.getItem('playerName');
+    if (savedName) {
+      this.nameInput.value = savedName;
+    }
+  }
+  
+  // Generate a random player name
+  generateRandomName() {
+    const adjectives = ['Swift', 'Brave', 'Mighty', 'Silent', 'Fierce', 'Golden', 'Shadow', 'Iron', 'Mystic'];
+    const nouns = ['Wolf', 'Tiger', 'Eagle', 'Dragon', 'Knight', 'Ninja', 'Warrior', 'Hunter', 'Ranger'];
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    const randomNum = Math.floor(Math.random() * 100);
+    
+    const randomName = `${randomAdjective}${randomNoun}${randomNum}`;
+    this.nameInput.value = randomName;
+    this.nameInput.focus();
+  }
+  
+  // Validate and submit the player name
+  submitName() {
+    const name = this.nameInput.value.trim();
+    
+    // Validate name (3-15 alphanumeric characters)
+    if (name.length < 3) {
+      this.showError('Name must be at least 3 characters');
+      return;
+    }
+    
+    if (!/^[a-zA-Z0-9 ]+$/.test(name)) {
+      this.showError('Name can only contain letters, numbers and spaces');
+      return;
+    }
+    
+    // Save name to localStorage for next time
+    localStorage.setItem('playerName', name);
+    
+    // Hide the login modal
+    document.getElementById('login-modal').style.display = 'none';
+    
+    // Call the provided callback with the player name
+    this.onNameSubmit(name);
+  }
+  
+  // Display an error message
+  showError(message) {
+    this.errorMessage.textContent = message;
+    this.errorMessage.style.visibility = 'visible';
+    
+    // Hide the error after 3 seconds
+    setTimeout(() => {
+      this.errorMessage.style.visibility = 'hidden';
+    }, 3000);
+  }
+}
+
 // Scene, camera, and renderer setup
 class Game {
-  constructor() {
+  constructor(playerName) {
+    // Store player name
+    this.playerName = playerName;
+    console.log(`Starting game with player name: ${this.playerName}`);
+    
     // Initialize timing
     this.clock = new THREE.Clock();
     this.deltaTime = 0;
@@ -78,8 +167,8 @@ class Game {
     this.pickupManager = new PickupManager(this.scene, this.physics);
     this.pickupManager.definePickupLocations();
     
-    // Connect to server
-    this.network.connect();
+    // Connect to server with player name
+    this.network.connect(this.playerName);
     
     // Last position/rotation sent to the server
     this.lastNetworkUpdate = 0;
@@ -880,14 +969,18 @@ class Game {
   }
 }
 
-// Initialize the game when DOM is ready
+// Initialize the login handler and game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  window.game = new Game();
+  new LoginHandler((playerName) => {
+    window.game = new Game(playerName);
+  });
 });
 
 // Initialize immediately if DOM already loaded
 if (document.readyState === 'complete') {
-  window.game = new Game();
+  new LoginHandler((playerName) => {
+    window.game = new Game(playerName);
+  });
 }
 
 // Expose test functions globally to run from console
