@@ -221,32 +221,27 @@ export class Player {
     
     // Apply horizontal mouse movement to player rotation (Y-axis)
     if (this.input.mouse.dx !== 0) {
-      // Left/right rotation - standard behavior (negative dx = look left)
       this.rotation -= this.input.mouse.dx * this.input.mouseSensitivity;
       this.playerGroup.rotation.y = this.rotation;
-      
-      // Debug horizontal rotation
-      if (Math.abs(this.input.mouse.dx) > 10) {
-        console.log(`Horizontal rotation: ${this.rotation.toFixed(3)} from dx=${this.input.mouse.dx}`);
-      }
     }
     
     // Apply vertical mouse movement to camera pitch (X-axis)
     if (this.input.mouse.dy !== 0) {
-      // EXTREME TEST - Force a multiplier to verify our code is executing
-      // If our code is running, this will make vertical movement extremely sensitive
-      const extremeMultiplier = 10.0;
-      const testPitchChange = -this.input.mouse.dy * this.input.mouseSensitivity * extremeMultiplier;
-      
-      console.log(`TEST INVERSION: dy=${this.input.mouse.dy}, inverted=${-this.input.mouse.dy}`);
-      
+      // Calculate pitch normally
+      const pitchChange = this.input.mouse.dy * this.input.mouseSensitivity;
       const currentPitch = this.cameraHolder.rotation.x;
-      const newPitch = currentPitch + testPitchChange;
+      const calculatedPitch = currentPitch + pitchChange;
       
-      // Limit vertical rotation to prevent flipping
-      if (newPitch < Math.PI / 2 && newPitch > -Math.PI / 2) {
-        this.cameraHolder.rotation.x = newPitch;
-        console.log(`Applied pitch: ${newPitch.toFixed(3)}`);
+      console.log(`ROTATION TEST - dy: ${this.input.mouse.dy}, current: ${currentPitch.toFixed(3)}, calculated: ${calculatedPitch.toFixed(3)}`);
+      
+      // FLIP THE SIGN OF THE FINAL ROTATION to get inverted controls
+      // This inverts the entire rotation, not just the change
+      const invertedPitch = -calculatedPitch;
+      
+      // Limit vertical rotation to prevent flipping (using the inverted value)
+      if (invertedPitch < Math.PI / 2 && invertedPitch > -Math.PI / 2) {
+        console.log(`Applying INVERTED pitch: ${invertedPitch.toFixed(3)} (was ${calculatedPitch.toFixed(3)})`);
+        this.cameraHolder.rotation.x = invertedPitch;
       }
     }
     
