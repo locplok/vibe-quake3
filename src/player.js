@@ -221,22 +221,37 @@ export class Player {
     
     // Apply horizontal mouse movement to player rotation (Y-axis)
     if (this.input.mouse.dx !== 0) {
+      // Left/right rotation - standard behavior (negative dx = look left)
       this.rotation -= this.input.mouse.dx * this.input.mouseSensitivity;
       this.playerGroup.rotation.y = this.rotation;
+      
+      // Debug horizontal rotation
+      if (Math.abs(this.input.mouse.dx) > 10) {
+        console.log(`Horizontal rotation: ${this.rotation.toFixed(3)} from dx=${this.input.mouse.dx}`);
+      }
     }
     
     // Apply vertical mouse movement to camera pitch (X-axis)
     if (this.input.mouse.dy !== 0) {
-      // INVERT: Reverse the sign of dy in pitchChange 
-      // When mouse moves up (negative dy), we want to look up (negative pitch)
-      // When mouse moves down (positive dy), we want to look down (positive pitch)
+      // INVERTED: Moving mouse down (positive dy) should look up (negative pitch)
+      // This means we need to negate the dy value here
       const pitchChange = -this.input.mouse.dy * this.input.mouseSensitivity;
+      
+      // Debug vertical rotation
+      if (Math.abs(this.input.mouse.dy) > 10) {
+        console.log(`Vertical rotation: dy=${this.input.mouse.dy}, pitchChange=${pitchChange.toFixed(5)}`);
+      }
+      
       const currentPitch = this.cameraHolder.rotation.x;
       const newPitch = currentPitch + pitchChange;
       
       // Limit vertical rotation to prevent flipping
       if (newPitch < Math.PI / 2 && newPitch > -Math.PI / 2) {
         this.cameraHolder.rotation.x = newPitch;
+        
+        if (Math.abs(this.input.mouse.dy) > 10) {
+          console.log(`Applied pitch: ${newPitch.toFixed(3)}`);
+        }
       }
     }
     
