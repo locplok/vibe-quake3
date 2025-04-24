@@ -233,34 +233,20 @@ export class Player {
     
     // Apply vertical mouse movement to camera pitch (X-axis)
     if (this.input.mouse.dy !== 0) {
-      // Calculate the standard pitch change first, with positive dy resulting in positive pitch
-      const standardPitchChange = this.input.mouse.dy * this.input.mouseSensitivity;
+      // EXTREME TEST - Force a multiplier to verify our code is executing
+      // If our code is running, this will make vertical movement extremely sensitive
+      const extremeMultiplier = 10.0;
+      const testPitchChange = -this.input.mouse.dy * this.input.mouseSensitivity * extremeMultiplier;
       
-      // Debug vertical rotation
-      if (Math.abs(this.input.mouse.dy) > 10) {
-        console.log(`Vertical rotation: dy=${this.input.mouse.dy}, pitchChange=${standardPitchChange.toFixed(5)}`);
-      }
+      console.log(`TEST INVERSION: dy=${this.input.mouse.dy}, inverted=${-this.input.mouse.dy}`);
       
       const currentPitch = this.cameraHolder.rotation.x;
-      
-      // For standard controls: 
-      // - Mouse up (negative dy) → Look up (negative pitch)
-      // - Mouse down (positive dy) → Look down (positive pitch)
-      
-      // For inverted controls (what we want):
-      // - Mouse up (negative dy) → Look down (positive pitch)
-      // - Mouse down (positive dy) → Look up (negative pitch)
-      
-      // Invert by negating the whole pitch calculation
-      const newPitch = currentPitch - standardPitchChange;
+      const newPitch = currentPitch + testPitchChange;
       
       // Limit vertical rotation to prevent flipping
       if (newPitch < Math.PI / 2 && newPitch > -Math.PI / 2) {
         this.cameraHolder.rotation.x = newPitch;
-        
-        if (Math.abs(this.input.mouse.dy) > 10) {
-          console.log(`Applied pitch: ${newPitch.toFixed(3)}`);
-        }
+        console.log(`Applied pitch: ${newPitch.toFixed(3)}`);
       }
     }
     

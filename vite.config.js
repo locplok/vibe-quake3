@@ -2,6 +2,8 @@ export default {
   root: './',
   build: {
     outDir: 'dist',
+    sourcemap: true,
+    emptyOutDir: true,
   },
   publicDir: 'public',
   server: {
@@ -16,6 +18,16 @@ export default {
         target: 'http://localhost:3000',
         changeOrigin: true
       }
-    }
-  }
+    },
+    fs: {
+      strict: true,
+    },
+    hmr: {
+      overlay: true,
+    },
+  },
+  optimizeDeps: {
+    force: true,
+  },
+  cacheDir: '.vite-cache',
 } 
