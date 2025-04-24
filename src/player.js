@@ -227,7 +227,8 @@ export class Player {
     
     // Apply vertical mouse movement to camera pitch (X-axis)
     if (this.input.mouse.dy !== 0) {
-      const pitchChange = this.input.mouse.dy * this.input.mouseSensitivity;
+      // Invert the vertical mouse movement by changing the sign
+      const pitchChange = -this.input.mouse.dy * this.input.mouseSensitivity;
       const currentPitch = this.cameraHolder.rotation.x;
       const newPitch = currentPitch + pitchChange;
       
