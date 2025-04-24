@@ -227,21 +227,13 @@ export class Player {
     
     // Apply vertical mouse movement to camera pitch (X-axis)
     if (this.input.mouse.dy !== 0) {
-      // Calculate pitch normally
       const pitchChange = this.input.mouse.dy * this.input.mouseSensitivity;
       const currentPitch = this.cameraHolder.rotation.x;
-      const calculatedPitch = currentPitch + pitchChange;
+      const newPitch = currentPitch + pitchChange;
       
-      console.log(`ROTATION TEST - dy: ${this.input.mouse.dy}, current: ${currentPitch.toFixed(3)}, calculated: ${calculatedPitch.toFixed(3)}`);
-      
-      // FLIP THE SIGN OF THE FINAL ROTATION to get inverted controls
-      // This inverts the entire rotation, not just the change
-      const invertedPitch = -calculatedPitch;
-      
-      // Limit vertical rotation to prevent flipping (using the inverted value)
-      if (invertedPitch < Math.PI / 2 && invertedPitch > -Math.PI / 2) {
-        console.log(`Applying INVERTED pitch: ${invertedPitch.toFixed(3)} (was ${calculatedPitch.toFixed(3)})`);
-        this.cameraHolder.rotation.x = invertedPitch;
+      // Limit vertical rotation to prevent flipping
+      if (newPitch < Math.PI / 2 && newPitch > -Math.PI / 2) {
+        this.cameraHolder.rotation.x = newPitch;
       }
     }
     

@@ -121,9 +121,9 @@ export class InputHandler {
         this.mouse.dx = event.movementX || 0;
         this.mouse.dy = event.movementY || 0;
         
-        // Debug mouse movement - log both X and Y movement
-        if (Math.abs(this.mouse.dx) > 0.5 || Math.abs(this.mouse.dy) > 0.5) {
-          console.log(`Mouse movement - X: ${this.mouse.dx}, Y: ${this.mouse.dy}`);
+        // Debug mouse movement
+        if (Math.abs(this.mouse.dx) > 0.5) {
+          console.log(`Mouse X movement: ${this.mouse.dx}`);
         }
         
         // Accumulate total position (might be useful for some calculations)
