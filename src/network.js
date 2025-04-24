@@ -61,6 +61,9 @@ export class NetworkManager {
       // Initialize frag counter
       this.updateFragDisplay(0);
       
+      // Initialize leaderboard
+      this.createLeaderboard();
+      
       // IMPORTANT FIX: Set up a timer to sync armor value after connection
       setTimeout(() => {
         if (this.game && this.game.player) {
@@ -96,6 +99,7 @@ export class NetworkManager {
       console.log("Player count:", Object.keys(players).length);
       this.players = players;
       this.createPlayerModels();
+      this.updateLeaderboard(); // Update the leaderboard with current players
     });
     
     // New player joined
@@ -104,6 +108,7 @@ export class NetworkManager {
       console.log("Player info:", playerInfo);
       this.players[playerInfo.id] = playerInfo;
       this.createPlayerModel(playerInfo);
+      this.updateLeaderboard(); // Update the leaderboard with the new player
     });
     
     // Player moved
@@ -201,6 +206,14 @@ export class NetworkManager {
       if (fragInfo.id === this.socket.id) {
         this.updateFragDisplay(fragInfo.frags);
       }
+      
+      // Update player's frag count in our local players object
+      if (this.players[fragInfo.id]) {
+        this.players[fragInfo.id].frags = fragInfo.frags;
+      }
+      
+      // Update the leaderboard
+      this.updateLeaderboard();
     });
     
     // Player respawned
@@ -248,7 +261,10 @@ export class NetworkManager {
       this.removePlayerModel(playerId);
       
       // Remove from players object
-      delete this.players[playerId];
+      if (this.players[playerId]) {
+        delete this.players[playerId];
+        this.updateLeaderboard(); // Update the leaderboard when a player disconnects
+      }
     });
   }
   
@@ -272,6 +288,100 @@ export class NetworkManager {
     
     // Update the frag count display
     document.getElementById('frag-counter').textContent = `Frags: ${frags}`;
+  }
+  
+  // Create leaderboard in the bottom right corner
+  createLeaderboard() {
+    if (document.getElementById('leaderboard')) return;
+    
+    const leaderboard = document.createElement('div');
+    leaderboard.id = 'leaderboard';
+    leaderboard.style.position = 'absolute';
+    leaderboard.style.bottom = '20px';
+    leaderboard.style.right = '20px';
+    leaderboard.style.color = 'white';
+    leaderboard.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    leaderboard.style.padding = '10px';
+    leaderboard.style.borderRadius = '5px';
+    leaderboard.style.fontFamily = 'Arial';
+    leaderboard.style.minWidth = '180px';
+    leaderboard.style.maxHeight = '200px';
+    leaderboard.style.overflowY = 'auto';
+    leaderboard.style.zIndex = '100';
+    
+    const title = document.createElement('div');
+    title.textContent = 'LEADERBOARD';
+    title.style.fontWeight = 'bold';
+    title.style.textAlign = 'center';
+    title.style.borderBottom = '1px solid #666';
+    title.style.marginBottom = '5px';
+    title.style.paddingBottom = '5px';
+    
+    leaderboard.appendChild(title);
+    
+    // Create container for player scores
+    const scoresContainer = document.createElement('div');
+    scoresContainer.id = 'leaderboard-scores';
+    leaderboard.appendChild(scoresContainer);
+    
+    document.getElementById('ui-container').appendChild(leaderboard);
+    
+    // Initially update the leaderboard
+    this.updateLeaderboard();
+  }
+  
+  // Update the leaderboard with current player frags
+  updateLeaderboard() {
+    if (!document.getElementById('leaderboard-scores')) return;
+    
+    const scoresContainer = document.getElementById('leaderboard-scores');
+    scoresContainer.innerHTML = ''; // Clear current entries
+    
+    // Sort players by frag count (descending)
+    const sortedPlayers = Object.values(this.players).sort((a, b) => {
+      return (b.frags || 0) - (a.frags || 0);
+    });
+    
+    // Add each player to the leaderboard
+    sortedPlayers.forEach(player => {
+      const playerEntry = document.createElement('div');
+      playerEntry.className = 'leaderboard-entry';
+      playerEntry.style.display = 'flex';
+      playerEntry.style.justifyContent = 'space-between';
+      playerEntry.style.margin = '2px 0';
+      playerEntry.style.padding = '2px 0';
+      
+      // Highlight current player
+      if (player.id === this.socket?.id) {
+        playerEntry.style.fontWeight = 'bold';
+        playerEntry.style.color = '#ffcc00';
+      }
+      
+      const playerName = document.createElement('span');
+      playerName.textContent = player.name || 'Unknown';
+      playerName.style.textOverflow = 'ellipsis';
+      playerName.style.overflow = 'hidden';
+      playerName.style.whiteSpace = 'nowrap';
+      playerName.style.maxWidth = '130px';
+      
+      const playerFrags = document.createElement('span');
+      playerFrags.textContent = player.frags || '0';
+      playerFrags.style.marginLeft = '10px';
+      
+      playerEntry.appendChild(playerName);
+      playerEntry.appendChild(playerFrags);
+      scoresContainer.appendChild(playerEntry);
+    });
+    
+    // If no players, show a message
+    if (sortedPlayers.length === 0) {
+      const noPlayers = document.createElement('div');
+      noPlayers.textContent = 'No players online';
+      noPlayers.style.textAlign = 'center';
+      noPlayers.style.fontStyle = 'italic';
+      noPlayers.style.color = '#999';
+      scoresContainer.appendChild(noPlayers);
+    }
   }
   
   // Send player movement update to the server
@@ -606,34 +716,51 @@ export class NetworkManager {
   
   // Update method called each frame
   update() {
-    // Update player name tag positions
+    // Update player name tags positions
     for (const playerId in this.playerModels) {
       this.updatePlayerNameTagPosition(playerId);
     }
+    
+    // Refresh leaderboard periodically
+    if (!this._lastLeaderboardUpdate) {
+      this._lastLeaderboardUpdate = Date.now();
+      this.updateLeaderboard();
+    } else {
+      const now = Date.now();
+      if (now - this._lastLeaderboardUpdate > 2000) { // Update every 2 seconds
+        this._lastLeaderboardUpdate = now;
+        this.updateLeaderboard();
+      }
+    }
   }
   
-  // Clean up resources
+  // Clean up resources when disconnecting
   dispose() {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
     }
     
-    // Remove all player models
-    for (const id in this.playerModels) {
-      this.game.scene.remove(this.playerModels[id]);
+    // Clean up player models
+    for (const playerId in this.playerModels) {
+      this.removePlayerModel(playerId);
     }
     
-    // Remove all player name tags
-    for (const id in this.players) {
-      const nameElement = document.getElementById(`player-name-${id}`);
-      if (nameElement) {
-        nameElement.remove();
-      }
+    // Remove UI elements
+    const fragCounter = document.getElementById('frag-counter');
+    if (fragCounter) {
+      fragCounter.parentNode.removeChild(fragCounter);
     }
     
+    const leaderboard = document.getElementById('leaderboard');
+    if (leaderboard) {
+      leaderboard.parentNode.removeChild(leaderboard);
+    }
+    
+    // Clear player collections
     this.playerModels = {};
     this.players = {};
+    
     this.connected = false;
   }
 } 

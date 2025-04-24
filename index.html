@@ -51,6 +51,35 @@
             width: 100%;
             background-color: #f00;
         }
+        /* Leaderboard styles */
+        #leaderboard {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Arial', sans-serif;
+            min-width: 180px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        #leaderboard-scores {
+            margin-top: 5px;
+        }
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .leaderboard-entry:last-child {
+            border-bottom: none;
+        }
         /* Player name login modal */
         #login-modal {
             position: fixed;
