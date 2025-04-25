@@ -155,6 +155,13 @@ io.on('connection', (socket) => {
   // Send the current players to the new player
   socket.emit('currentPlayers', players);
   
+  // Send initial spawn position - NEW EVENT
+  socket.emit('initialSpawn', {
+    id: socket.id,
+    position: players[socket.id].position,
+    rotation: players[socket.id].rotation
+  });
+  
   // Broadcast the new player to all other players
   socket.broadcast.emit('newPlayer', players[socket.id]);
   

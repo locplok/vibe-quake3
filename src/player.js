@@ -6,10 +6,10 @@ import { WeaponSystem } from './weapons.js';
 const SPAWN_POINTS = [
   // Center area
   { x: 0, y: 1, z: 0 },        // Center
-  { x: 10, y: 1, z: 10 },      // Near center
-  { x: -10, y: 1, z: 10 },     // Near center
-  { x: 10, y: 1, z: -10 },     // Near center
-  { x: -10, y: 1, z: -10 },    // Near center
+  { x: 20, y: 1, z: 10 },      // Near center
+  { x: -20, y: 1, z: 10 },     // Near center
+  { x: 10, y: 1, z: -30 },     // Near center
+  { x: -20, y: 1, z: -30 },    // Near center
   
   // Mid-range positions
   { x: 40, y: 1, z: 40 },      // Southeast quadrant
@@ -26,20 +26,20 @@ const SPAWN_POINTS = [
   { x: 0, y: 1, z: 80 },       // Near Indigo mountain (South)
   
   // Far positions (near map edges)
-  { x: 90, y: 1, z: 0 },       // Far east
-  { x: -90, y: 1, z: 0 },      // Far west
-  { x: 0, y: 1, z: 90 },       // Far south
-  { x: 0, y: 1, z: -90 },      // Far north
-  { x: 90, y: 1, z: 90 },      // Far southeast corner
-  { x: -90, y: 1, z: 90 },     // Far northeast corner
-  { x: -90, y: 1, z: -90 },    // Far northwest corner
-  { x: 90, y: 1, z: -90 },     // Far southwest corner
+  { x: 60, y: 1, z: 0 },       // Far east
+  { x: -60, y: 1, z: 0 },      // Far west
+  { x: 0, y: 1, z: 60 },       // Far south
+  { x: 0, y: 1, z: -60 },      // Far north
+  { x: 60, y: 1, z: 60 },      // Far southeast corner
+  { x: -60, y: 1, z: 60 },     // Far northeast corner
+  { x: -60, y: 1, z: -60 },    // Far northwest corner
+  { x: 60, y: 1, z: -60 },     // Far southwest corner
   
   // On elevated terrain (for interesting spawns)
-  { x: 80, y: 3, z: 80 },      // On Orange mountain base (Southeast)
-  { x: -80, y: 3, z: 80 },     // On Brown mountain base (Northeast)
-  { x: -80, y: 3, z: -80 },    // On Blue-grey mountain base (Northwest)
-  { x: 80, y: 3, z: -80 }      // On Light green mountain base (Southwest)
+  { x: 50, y: 3, z: 50 },      // On Orange mountain base (Southeast)
+  { x: -50, y: 3, z: 50 },     // On Brown mountain base (Northeast)
+  { x: -50, y: 3, z: -50 },    // On Blue-grey mountain base (Northwest)
+  { x: 50, y: 3, z: -50 }      // On Light green mountain base (Southwest)
 ];
 
 export class Player {
@@ -109,8 +109,8 @@ export class Player {
     this.maxArmor = 100;
     this.armorProtection = 0.8; // 80% protection
     
-    // Choose a random spawn position
-    this.respawnAtRandomPosition();
+    // REMOVE random spawn - we'll wait for server instructions
+    // this.respawnAtRandomPosition();
     
     // Create and update displays in the correct order - armor first, then health
     this.createArmorDisplay();

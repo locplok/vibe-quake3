@@ -102,6 +102,31 @@ export class NetworkManager {
       this.updateLeaderboard(); // Update the leaderboard with current players
     });
     
+    // NEW: Handle initial spawn position from server
+    this.socket.on('initialSpawn', (spawnData) => {
+      console.log("==== INITIAL SPAWN POSITION RECEIVED ====");
+      console.log("Spawn data:", spawnData);
+      
+      if (spawnData.id === this.socket.id && this.game.player) {
+        // Use the same respawn logic for initial spawn
+        console.log('Setting initial spawn position from server');
+        this.game.player.networkRespawn(spawnData.position);
+        
+        // Set rotation if provided
+        if (spawnData.rotation !== undefined) {
+          this.game.player.rotation = spawnData.rotation;
+          this.game.player.playerGroup.rotation.y = spawnData.rotation;
+        }
+        
+        // Initialize timer for survival tracking
+        if (this.players[this.socket.id]) {
+          this.players[this.socket.id].lastSpawnTime = Date.now();
+        }
+        
+        console.log('Player initially spawned with health:', this.game.player.health);
+      }
+    });
+    
     // New player joined
     this.socket.on('newPlayer', (playerInfo) => {
       console.log("==== NEW PLAYER JOINED ====");
