@@ -331,6 +331,7 @@ export class WeaponSystem {
     }
     
     const playerModels = window.game.network.playerModels;
+    const players = window.game.network.players;
     if (!playerModels || Object.keys(playerModels).length === 0) {
       console.log("No player models found for hit detection");
       return null;
@@ -342,10 +343,25 @@ export class WeaponSystem {
     const playerMeshes = [];
     const playerIds = new Map(); // Use a Map to store the relationship between mesh and player ID
     
-    // Gather all player meshes for raycast checking
+    // Gather all player meshes for raycast checking, skip dead players
     for (const playerId in playerModels) {
+      // Skip players that are marked as dead or waiting to respawn
+      if (players[playerId] && (players[playerId].isDead || players[playerId].waitingToRespawn)) {
+        console.log(`Skipping dead player ${playerId} for hit detection`);
+        continue;
+      }
+      
       if (playerModels[playerId]) {
         console.log(`Adding player ${playerId} to hit detection check`);
+        console.log(`Player model visibility: ${playerModels[playerId].visible}`);
+        console.log(`Player model in scene: ${playerModels[playerId].parent !== null}`);
+        
+        // Additional safety check - don't add players whose models are not visible or not in scene
+        if (!playerModels[playerId].visible || !playerModels[playerId].parent) {
+          console.log(`Skipping player ${playerId} because model is not visible or not in scene`);
+          continue;
+        }
+        
         const playerMesh = playerModels[playerId];
         playerMeshes.push(playerMesh);
         playerIds.set(playerMesh, playerId); // Store the mesh->ID relationship
@@ -381,6 +397,12 @@ export class WeaponSystem {
       if (!hitPlayerId) {
         hitPlayerId = playerIds.get(hit.object);
         console.log(`Retrieved player ID from Map: ${hitPlayerId}`);
+      }
+      
+      // Double-check that the player is not dead (extra safety)
+      if (hitPlayerId && players[hitPlayerId] && (players[hitPlayerId].isDead || players[hitPlayerId].waitingToRespawn)) {
+        console.log(`Hit detected on dead player ${hitPlayerId}, ignoring`);
+        return null;
       }
       
       if (hitPlayerId) {
@@ -448,8 +470,17 @@ export class WeaponSystem {
     const playerId = hitObject.userData?.playerId;
     
     if (!playerId) {
-      console.log('Hit a player model but could not determine player ID');
+      console.log('Hit a player object but could not determine player ID');
       return;
+    }
+    
+    // Check if the player is dead or waiting to respawn
+    if (window.game && window.game.network && window.game.network.players[playerId]) {
+      const player = window.game.network.players[playerId];
+      if (player.isDead || player.waitingToRespawn) {
+        console.log(`Cannot hit player ${playerId} - they are dead`);
+        return;
+      }
     }
     
     console.log(`Hit player ${playerId} with ${this.damage} damage`);

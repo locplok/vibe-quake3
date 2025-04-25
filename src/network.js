@@ -230,21 +230,36 @@ export class NetworkManager {
         if (this.players[this.socket.id]) {
           this.players[this.socket.id].lastSpawnTime = Date.now();
           this.players[this.socket.id].waitingToRespawn = false;
+          this.players[this.socket.id].isDead = false;
         }
         
         console.log('Player respawned with health:', this.game.player.health);
       } else if (this.players[respawnInfo.id]) {
         // Update other player's position
         this.players[respawnInfo.id].position = respawnInfo.position;
+        
+        // Mark player as no longer dead or waiting to respawn
+        this.players[respawnInfo.id].waitingToRespawn = false;
+        this.players[respawnInfo.id].isDead = false;
+        
+        // Make player visible again
+        this.updatePlayerVisibility(respawnInfo.id);
+        
+        // Debug to verify model state after respawn
+        const playerModel = this.playerModels[respawnInfo.id];
+        if (playerModel) {
+          console.log(`Player ${respawnInfo.id} model after respawn: visible=${playerModel.visible}, in scene=${playerModel.parent !== null}`);
+        }
+        
+        // Update the model position
         this.updatePlayerModel(this.players[respawnInfo.id]);
         
         // Also update their health in our local data
         this.players[respawnInfo.id].health = 100;
         this.players[respawnInfo.id].armor = 0;
         
-        // Update lastSpawnTime and reset waitingToRespawn flag
+        // Update lastSpawnTime
         this.players[respawnInfo.id].lastSpawnTime = Date.now();
-        this.players[respawnInfo.id].waitingToRespawn = false;
       }
     });
     
@@ -267,12 +282,34 @@ export class NetworkManager {
       console.log("==== PLAYER DEATH EVENT ====");
       console.log('Player died:', deathInfo);
       
+      // Update our local player data to mark this player as dead
+      if (this.players[deathInfo.id]) {
+        this.players[deathInfo.id].isDead = true;
+        this.players[deathInfo.id].waitingToRespawn = true;
+        
+        // If this is another player, update their model visibility
+        if (deathInfo.id !== this.socket.id) {
+          this.updatePlayerVisibility(deathInfo.id);
+          
+          // Debug to verify model state after death
+          const playerModel = this.playerModels[deathInfo.id];
+          if (playerModel) {
+            console.log(`Player ${deathInfo.id} model after death: visible=${playerModel.visible}, in scene=${playerModel.parent !== null}`);
+          }
+        }
+      }
+      
       if (deathInfo.id === this.socket.id && this.game.player) {
         // Handle our own death
         console.log('We died! Showing death overlay.');
         
         // Format survival time for display
         const survivalTimeFormatted = this.formatSurvivalTime(deathInfo.survivalTime);
+        
+        // Store the killer ID for spawning away from them later
+        if (this.players[this.socket.id]) {
+          this.players[this.socket.id].lastKillerId = deathInfo.killerId;
+        }
         
         // Show death overlay
         this.showDeathOverlay(deathInfo.killerId, survivalTimeFormatted);
@@ -867,6 +904,9 @@ export class NetworkManager {
       playerModel.rotation.y = playerInfo.rotation;
     }
     
+    // Set visibility based on isDead state
+    playerModel.visible = !(playerInfo.isDead || playerInfo.waitingToRespawn);
+    
     // Cast shadows
     playerModel.castShadow = true;
     
@@ -1100,5 +1140,38 @@ export class NetworkManager {
     this.players = {};
     
     this.connected = false;
+  }
+  
+  // Add a new method to handle player visibility based on isDead state
+  updatePlayerVisibility(playerId) {
+    const playerModel = this.playerModels[playerId];
+    if (!playerModel) return;
+    
+    // Get player state
+    const player = this.players[playerId];
+    if (!player) return;
+    
+    // If player is dead, hide their model
+    if (player.isDead || player.waitingToRespawn) {
+      console.log(`Hiding model for dead player ${playerId}`);
+      playerModel.visible = false;
+      
+      // Remove from scene temporarily to ensure it can't be hit by raycasts
+      if (playerModel.parent) {
+        // Store reference to parent for later re-addition
+        playerModel.userData.originalParent = playerModel.parent;
+        playerModel.parent.remove(playerModel);
+      }
+    } else {
+      // Make sure player is visible if they're alive
+      console.log(`Showing model for alive player ${playerId}`);
+      playerModel.visible = true;
+      
+      // Re-add to scene if it was removed
+      if (playerModel.userData.originalParent && !playerModel.parent) {
+        playerModel.userData.originalParent.add(playerModel);
+        playerModel.userData.originalParent = null;
+      }
+    }
   }
 } 
