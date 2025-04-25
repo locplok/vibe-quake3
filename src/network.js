@@ -222,24 +222,15 @@ export class NetworkManager {
       console.log('Player respawned:', respawnInfo);
       
       if (respawnInfo.id === this.socket.id && this.game.player) {
-        // Handle our own respawn
+        // Handle our own respawn using the new networkRespawn method
         console.log('Handling our own respawn');
+        this.game.player.networkRespawn(respawnInfo.position);
         
-        // Update position
-        this.game.player.setPosition(
-          respawnInfo.position.x,
-          respawnInfo.position.y,
-          respawnInfo.position.z
-        );
-        
-        // IMPORTANT: Ensure health is reset in client-side data
-        // This provides a backup to ensure health UI is updated
-        this.game.player.health = 100;
-        this.game.player.armor = 0;
-        
-        // Force UI update
-        this.game.player.updateHealthDisplay();
-        this.game.player.updateArmorDisplay();
+        // Reset the lastSpawnTime for survival time tracking
+        if (this.players[this.socket.id]) {
+          this.players[this.socket.id].lastSpawnTime = Date.now();
+          this.players[this.socket.id].waitingToRespawn = false;
+        }
         
         console.log('Player respawned with health:', this.game.player.health);
       } else if (this.players[respawnInfo.id]) {
@@ -250,6 +241,10 @@ export class NetworkManager {
         // Also update their health in our local data
         this.players[respawnInfo.id].health = 100;
         this.players[respawnInfo.id].armor = 0;
+        
+        // Update lastSpawnTime and reset waitingToRespawn flag
+        this.players[respawnInfo.id].lastSpawnTime = Date.now();
+        this.players[respawnInfo.id].waitingToRespawn = false;
       }
     });
     
@@ -264,6 +259,45 @@ export class NetworkManager {
       if (this.players[playerId]) {
         delete this.players[playerId];
         this.updateLeaderboard(); // Update the leaderboard when a player disconnects
+      }
+    });
+    
+    // Player died - waiting for respawn
+    this.socket.on('playerDied', (deathInfo) => {
+      console.log("==== PLAYER DEATH EVENT ====");
+      console.log('Player died:', deathInfo);
+      
+      if (deathInfo.id === this.socket.id && this.game.player) {
+        // Handle our own death
+        console.log('We died! Showing death overlay.');
+        
+        // Format survival time for display
+        const survivalTimeFormatted = this.formatSurvivalTime(deathInfo.survivalTime);
+        
+        // Show death overlay
+        this.showDeathOverlay(deathInfo.killerId, survivalTimeFormatted);
+        
+        // Setup respawn event listener for Enter key
+        this.setupRespawnListener();
+      }
+    });
+
+    // Add survival time update listener
+    this.socket.on('survivalTimeUpdate', (timeInfo) => {
+      console.log(`Received survival time update for player ${timeInfo.id}:`, timeInfo);
+      
+      // Update our local player data with the survival time info
+      if (this.players[timeInfo.id]) {
+        this.players[timeInfo.id].survivalTime = timeInfo.survivalTime;
+        this.players[timeInfo.id].longestSurvivalTime = timeInfo.longestSurvivalTime;
+        
+        // If this is us and it's a new record, show a congratulations message
+        if (timeInfo.id === this.socket.id && timeInfo.isNewRecord) {
+          this.showNewSurvivalRecord(timeInfo.longestSurvivalTime);
+        }
+        
+        // Update the leaderboard with new survival time data
+        this.updateLeaderboard();
       }
     });
   }
@@ -292,6 +326,16 @@ export class NetworkManager {
   
   // Create leaderboard in the bottom right corner
   createLeaderboard() {
+    // Make sure the UI container exists before creating the leaderboard
+    const uiContainer = document.getElementById('ui-container');
+    if (!uiContainer) {
+      console.error('UI container not found, leaderboard creation delayed');
+      // Try again later
+      setTimeout(() => this.createLeaderboard(), 500);
+      return;
+    }
+    
+    // Skip if leaderboard already exists
     if (document.getElementById('leaderboard')) return;
     
     const leaderboard = document.createElement('div');
@@ -304,7 +348,7 @@ export class NetworkManager {
     leaderboard.style.padding = '10px';
     leaderboard.style.borderRadius = '5px';
     leaderboard.style.fontFamily = 'Arial';
-    leaderboard.style.minWidth = '180px';
+    leaderboard.style.minWidth = '250px'; // Make wider to accommodate survival time
     leaderboard.style.maxHeight = '200px';
     leaderboard.style.overflowY = 'auto';
     leaderboard.style.zIndex = '100';
@@ -319,69 +363,338 @@ export class NetworkManager {
     
     leaderboard.appendChild(title);
     
+    // Create header row with column titles
+    const headerRow = document.createElement('div');
+    headerRow.className = 'leaderboard-header';
+    headerRow.style.display = 'flex';
+    headerRow.style.justifyContent = 'space-between';
+    headerRow.style.fontWeight = 'bold';
+    headerRow.style.marginBottom = '3px';
+    headerRow.style.paddingBottom = '3px';
+    headerRow.style.borderBottom = '1px solid #444';
+    
+    const nameHeader = document.createElement('span');
+    nameHeader.textContent = 'PLAYER';
+    nameHeader.style.flex = '1';
+    
+    const fragsHeader = document.createElement('span');
+    fragsHeader.textContent = 'FRAGS';
+    fragsHeader.style.width = '50px';
+    fragsHeader.style.textAlign = 'center';
+    
+    const timeHeader = document.createElement('span');
+    timeHeader.textContent = 'BEST TIME';
+    timeHeader.style.width = '80px';
+    timeHeader.style.textAlign = 'right';
+    
+    headerRow.appendChild(nameHeader);
+    headerRow.appendChild(fragsHeader);
+    headerRow.appendChild(timeHeader);
+    leaderboard.appendChild(headerRow);
+    
     // Create container for player scores
     const scoresContainer = document.createElement('div');
     scoresContainer.id = 'leaderboard-scores';
     leaderboard.appendChild(scoresContainer);
     
-    document.getElementById('ui-container').appendChild(leaderboard);
+    uiContainer.appendChild(leaderboard);
+    
+    // Create survival timer display
+    this.createSurvivalTimer();
     
     // Initially update the leaderboard
     this.updateLeaderboard();
   }
   
-  // Update the leaderboard with current player frags
+  // Update the leaderboard with current player frags and survival times
   updateLeaderboard() {
-    if (!document.getElementById('leaderboard-scores')) return;
-    
     const scoresContainer = document.getElementById('leaderboard-scores');
+    if (!scoresContainer) return;
+    
     scoresContainer.innerHTML = ''; // Clear current entries
     
-    // Sort players by frag count (descending)
-    const sortedPlayers = Object.values(this.players).sort((a, b) => {
-      return (b.frags || 0) - (a.frags || 0);
-    });
+    // Make sure this.players exists and isn't null
+    if (!this.players) return;
     
-    // Add each player to the leaderboard
-    sortedPlayers.forEach(player => {
-      const playerEntry = document.createElement('div');
-      playerEntry.className = 'leaderboard-entry';
-      playerEntry.style.display = 'flex';
-      playerEntry.style.justifyContent = 'space-between';
-      playerEntry.style.margin = '2px 0';
-      playerEntry.style.padding = '2px 0';
+    try {
+      // Sort players by frag count (descending)
+      const sortedPlayers = Object.values(this.players)
+        .filter(player => player && player.id) // Ensure we only have valid player objects
+        .sort((a, b) => {
+          return (b.frags || 0) - (a.frags || 0);
+        });
       
-      // Highlight current player
-      if (player.id === this.socket?.id) {
-        playerEntry.style.fontWeight = 'bold';
-        playerEntry.style.color = '#ffcc00';
+      // Add each player to the leaderboard
+      sortedPlayers.forEach(player => {
+        if (!player || !player.id) return; // Skip invalid players
+        
+        const playerEntry = document.createElement('div');
+        playerEntry.className = 'leaderboard-entry';
+        playerEntry.style.display = 'flex';
+        playerEntry.style.justifyContent = 'space-between';
+        playerEntry.style.margin = '2px 0';
+        playerEntry.style.padding = '2px 0';
+        
+        // Highlight current player
+        if (player.id === this.socket?.id) {
+          playerEntry.style.fontWeight = 'bold';
+          playerEntry.style.color = '#ffcc00';
+        }
+        
+        // Create player name column
+        const playerName = document.createElement('span');
+        playerName.textContent = player.name || 'Unknown';
+        playerName.style.textOverflow = 'ellipsis';
+        playerName.style.overflow = 'hidden';
+        playerName.style.whiteSpace = 'nowrap';
+        playerName.style.maxWidth = '100px';
+        playerName.style.flex = '1';
+        
+        // Create frags column
+        const playerFrags = document.createElement('span');
+        playerFrags.textContent = player.frags || '0';
+        playerFrags.style.width = '50px';
+        playerFrags.style.textAlign = 'center';
+        
+        // Create survival time column
+        const playerSurvival = document.createElement('span');
+        const survivalTime = player.longestSurvivalTime || 0;
+        playerSurvival.textContent = this.formatSurvivalTime(survivalTime);
+        playerSurvival.style.width = '80px';
+        playerSurvival.style.textAlign = 'right';
+        
+        playerEntry.appendChild(playerName);
+        playerEntry.appendChild(playerFrags);
+        playerEntry.appendChild(playerSurvival);
+        scoresContainer.appendChild(playerEntry);
+      });
+      
+      // If no players, show a message
+      if (sortedPlayers.length === 0) {
+        const noPlayers = document.createElement('div');
+        noPlayers.textContent = 'No players online';
+        noPlayers.style.textAlign = 'center';
+        noPlayers.style.fontStyle = 'italic';
+        noPlayers.style.color = '#999';
+        scoresContainer.appendChild(noPlayers);
       }
+    } catch (err) {
+      console.error('Error updating leaderboard:', err);
       
-      const playerName = document.createElement('span');
-      playerName.textContent = player.name || 'Unknown';
-      playerName.style.textOverflow = 'ellipsis';
-      playerName.style.overflow = 'hidden';
-      playerName.style.whiteSpace = 'nowrap';
-      playerName.style.maxWidth = '130px';
-      
-      const playerFrags = document.createElement('span');
-      playerFrags.textContent = player.frags || '0';
-      playerFrags.style.marginLeft = '10px';
-      
-      playerEntry.appendChild(playerName);
-      playerEntry.appendChild(playerFrags);
-      scoresContainer.appendChild(playerEntry);
-    });
-    
-    // If no players, show a message
-    if (sortedPlayers.length === 0) {
-      const noPlayers = document.createElement('div');
-      noPlayers.textContent = 'No players online';
-      noPlayers.style.textAlign = 'center';
-      noPlayers.style.fontStyle = 'italic';
-      noPlayers.style.color = '#999';
-      scoresContainer.appendChild(noPlayers);
+      // Add error message to leaderboard
+      const errorMessage = document.createElement('div');
+      errorMessage.textContent = 'Error updating scores';
+      errorMessage.style.color = '#ff5252';
+      errorMessage.style.textAlign = 'center';
+      scoresContainer.appendChild(errorMessage);
     }
+  }
+  
+  // Create the survival timer UI element
+  createSurvivalTimer() {
+    // Skip if timer already exists
+    if (document.getElementById('survival-timer')) return;
+    
+    const uiContainer = document.getElementById('ui-container');
+    if (!uiContainer) {
+      console.error('UI container not found, survival timer creation delayed');
+      setTimeout(() => this.createSurvivalTimer(), 500);
+      return;
+    }
+    
+    const timerContainer = document.createElement('div');
+    timerContainer.id = 'survival-timer';
+    timerContainer.style.position = 'absolute';
+    timerContainer.style.top = '50px'; // Below frag counter
+    timerContainer.style.right = '20px';
+    timerContainer.style.color = 'white';
+    timerContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    timerContainer.style.padding = '5px 10px';
+    timerContainer.style.borderRadius = '5px';
+    timerContainer.style.fontFamily = 'Arial';
+    timerContainer.style.fontSize = '14px';
+    timerContainer.textContent = 'Survival: 00:00';
+    
+    uiContainer.appendChild(timerContainer);
+    
+    // Start the timer update loop
+    this._startSurvivalTimer();
+  }
+  
+  // Format milliseconds to MM:SS.ms format
+  formatSurvivalTime(ms) {
+    if (!ms) return '00:00';
+    
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  
+  // Start the survival timer update loop
+  _startSurvivalTimer() {
+    this._survivalTimerStarted = true;
+    
+    // Update survival timer every 100ms
+    this._survivalTimerInterval = setInterval(() => {
+      if (!this.socket || !this.socket.id || !this.players[this.socket.id]) return;
+      
+      // Skip updating timer if player is dead/waiting to respawn
+      if (this.players[this.socket.id].waitingToRespawn) return;
+      
+      const timerElement = document.getElementById('survival-timer');
+      if (!timerElement) return;
+      
+      // Calculate current survival time
+      const survivalTime = Date.now() - (this.players[this.socket.id].lastSpawnTime || Date.now());
+      timerElement.textContent = `Survival: ${this.formatSurvivalTime(survivalTime)}`;
+    }, 100);
+  }
+  
+  // Show the death overlay
+  showDeathOverlay(killerId, survivalTime) {
+    // Skip if overlay already exists
+    if (document.getElementById('death-overlay')) {
+      return;
+    }
+    
+    const uiContainer = document.getElementById('ui-container');
+    if (!uiContainer) return;
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'death-overlay';
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(200, 0, 0, 0.3)';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.color = 'white';
+    overlay.style.fontFamily = 'Arial';
+    overlay.style.textAlign = 'center';
+    overlay.style.zIndex = '1000';
+    
+    // Show killer info
+    const deathMessage = document.createElement('div');
+    deathMessage.style.fontSize = '24px';
+    deathMessage.style.marginBottom = '20px';
+    
+    if (killerId && this.players[killerId]) {
+      deathMessage.textContent = `You were fragged by ${this.players[killerId].name}`;
+    } else {
+      deathMessage.textContent = 'You died';
+    }
+    
+    const survivalTimeDisplay = document.createElement('div');
+    survivalTimeDisplay.style.fontSize = '20px';
+    survivalTimeDisplay.style.marginBottom = '30px';
+    survivalTimeDisplay.textContent = `Survival time: ${survivalTime}`;
+    
+    const respawnPrompt = document.createElement('div');
+    respawnPrompt.style.fontSize = '20px';
+    respawnPrompt.style.marginTop = '10px';
+    respawnPrompt.style.padding = '5px 15px';
+    respawnPrompt.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    respawnPrompt.style.borderRadius = '5px';
+    respawnPrompt.style.animation = 'pulse 1.5s infinite';
+    respawnPrompt.textContent = 'Press ENTER to respawn';
+    
+    // Add a style for the pulsing animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    overlay.appendChild(deathMessage);
+    overlay.appendChild(survivalTimeDisplay);
+    overlay.appendChild(respawnPrompt);
+    
+    uiContainer.appendChild(overlay);
+  }
+  
+  // Set up the respawn key listener
+  setupRespawnListener() {
+    // Remove any existing listener first
+    this.removeRespawnListener();
+    
+    // Create the respawn handler
+    this._respawnHandler = (event) => {
+      // Listen for Enter key
+      if (event.key === 'Enter') {
+        console.log('Enter key pressed, requesting respawn');
+        this.requestRespawn();
+      }
+    };
+    
+    // Add the listener
+    window.addEventListener('keydown', this._respawnHandler);
+  }
+  
+  // Remove the respawn key listener
+  removeRespawnListener() {
+    if (this._respawnHandler) {
+      window.removeEventListener('keydown', this._respawnHandler);
+      this._respawnHandler = null;
+    }
+  }
+  
+  // Request server to respawn the player
+  requestRespawn() {
+    if (!this.socket || !this.connected) return;
+    
+    console.log('Sending respawn request to server');
+    this.socket.emit('playerRequestRespawn');
+    
+    // Remove the death overlay
+    const overlay = document.getElementById('death-overlay');
+    if (overlay && overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay);
+    }
+    
+    // Remove the respawn listener
+    this.removeRespawnListener();
+  }
+  
+  // Show a new survival record message
+  showNewSurvivalRecord(time) {
+    const uiContainer = document.getElementById('ui-container');
+    if (!uiContainer) return;
+    
+    const recordMessage = document.createElement('div');
+    recordMessage.className = 'record-message';
+    recordMessage.style.position = 'absolute';
+    recordMessage.style.top = '100px';
+    recordMessage.style.left = '50%';
+    recordMessage.style.transform = 'translateX(-50%)';
+    recordMessage.style.color = '#ffcc00';
+    recordMessage.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    recordMessage.style.padding = '10px 15px';
+    recordMessage.style.borderRadius = '5px';
+    recordMessage.style.fontFamily = 'Arial';
+    recordMessage.style.fontSize = '18px';
+    recordMessage.style.fontWeight = 'bold';
+    recordMessage.style.textAlign = 'center';
+    recordMessage.style.zIndex = '101';
+    recordMessage.textContent = `NEW PERSONAL BEST SURVIVAL TIME: ${this.formatSurvivalTime(time)}`;
+    
+    uiContainer.appendChild(recordMessage);
+    
+    // Remove the message after 5 seconds
+    setTimeout(() => {
+      if (recordMessage.parentNode) {
+        recordMessage.parentNode.removeChild(recordMessage);
+      }
+    }, 5000);
   }
   
   // Send player movement update to the server
@@ -716,21 +1029,27 @@ export class NetworkManager {
   
   // Update method called each frame
   update() {
-    // Update player name tags positions
-    for (const playerId in this.playerModels) {
-      this.updatePlayerNameTagPosition(playerId);
-    }
-    
-    // Refresh leaderboard periodically
-    if (!this._lastLeaderboardUpdate) {
-      this._lastLeaderboardUpdate = Date.now();
-      this.updateLeaderboard();
-    } else {
-      const now = Date.now();
-      if (now - this._lastLeaderboardUpdate > 2000) { // Update every 2 seconds
-        this._lastLeaderboardUpdate = now;
-        this.updateLeaderboard();
+    try {
+      // Update player name tags positions
+      for (const playerId in this.playerModels) {
+        if (this.playerModels[playerId]) {
+          this.updatePlayerNameTagPosition(playerId);
+        }
       }
+      
+      // Refresh leaderboard periodically
+      if (!this._lastLeaderboardUpdate) {
+        this._lastLeaderboardUpdate = Date.now();
+        this.updateLeaderboard();
+      } else {
+        const now = Date.now();
+        if (now - this._lastLeaderboardUpdate > 2000) { // Update every 2 seconds
+          this._lastLeaderboardUpdate = now;
+          this.updateLeaderboard();
+        }
+      }
+    } catch (err) {
+      console.error('Error in network update:', err);
     }
   }
   
@@ -756,6 +1075,25 @@ export class NetworkManager {
     if (leaderboard) {
       leaderboard.parentNode.removeChild(leaderboard);
     }
+    
+    const survivalTimer = document.getElementById('survival-timer');
+    if (survivalTimer) {
+      survivalTimer.parentNode.removeChild(survivalTimer);
+    }
+    
+    const deathOverlay = document.getElementById('death-overlay');
+    if (deathOverlay) {
+      deathOverlay.parentNode.removeChild(deathOverlay);
+    }
+    
+    // Clear intervals
+    if (this._survivalTimerInterval) {
+      clearInterval(this._survivalTimerInterval);
+      this._survivalTimerInterval = null;
+    }
+    
+    // Remove event listeners
+    this.removeRespawnListener();
     
     // Clear player collections
     this.playerModels = {};

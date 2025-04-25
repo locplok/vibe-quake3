@@ -135,6 +135,15 @@
   - Implement scoreboard
   - Add player name display above models
 
+- Step 33: Survival Time Tracking and Enhanced Leaderboard
+  - Add survival time tracking for each player
+  - Create enhanced leaderboard showing frags and best survival time
+  - Implement manual respawn system requiring key press
+  - Add visual timer showing current survival duration
+  - Create personal best tracking for survival time
+  - Modify server to calculate and broadcast survival statistics
+  - Implement "Press Enter to Respawn" UI overlay
+
 ## Project Structure
 The project uses the following structure:
 - `/src` - Client-side game code

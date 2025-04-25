@@ -442,6 +442,48 @@ This document provides a step-by-step guide for AI developers to build a base ve
 
 ---
 
+## Step 33: Survival Time Tracking and Enhanced Leaderboard
+
+#### 33.1: Server-side Survival Time Tracking
+- Add `lastSpawnTime` property to each player to track spawn timestamp
+- Add `longestSurvivalTime` property to store best survival duration for each player
+- Modify player death logic to calculate survival time when a player dies
+- Implement server-side tracking of longest survival times across all players
+- Add event broadcasting for survival time updates to all clients
+
+#### 33.2: Client-side Survival Time Display
+- Add a timer UI element showing current survival time since last spawn
+- Create formatting helpers to display time in minutes:seconds format
+- Implement visual effects when player beats their personal best time
+- Add survival time to player statistics tracking
+- Create survival time milestone achievements (survive 1 min, 5 min, etc.)
+
+#### 33.3: Enhanced Leaderboard System
+- Modify existing leaderboard to show additional column for best survival time
+- Implement sorting options (by frags or by survival time)
+- Add UI controls to toggle leaderboard display modes
+- Create visual highlighting for top performers in each category
+- Implement player ranking system based on combined metrics
+
+#### 33.4: Manual Respawn System
+- Modify death handling to not auto-respawn players
+- Add "Press Enter to Respawn" UI overlay when player dies
+- Implement keyboard event listener for respawn action
+- Add server-side validation for respawn requests
+- Create respawn countdown timer for competitive modes
+- Add spectator view while waiting to respawn
+
+#### 33.5: Death Experience Enhancement
+- Add death camera that shows the killer's position
+- Create dramatic death effects (slow motion, fade to black)
+- Implement death recap showing damage sources
+- Add killcam replay option showing seconds before death
+- Create respawn location selection system (for advanced gameplay)
+
+**Test:** Kill a player and observe that they don't automatically respawn. Verify that the player can press Enter to respawn manually. Check that survival time is tracked and displayed on the leaderboard. Confirm that personal best survival times persist across respawns.
+
+---
+
 ## Technical Considerations for Advanced Features
 
 1. **Network Optimization**

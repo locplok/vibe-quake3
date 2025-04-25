@@ -517,46 +517,33 @@ export class Player {
   }
   
   die() {
-    console.log('==== PLAYER DIED ====');
+    console.log('Player died');
+    
+    // Only proceed if we're not already dead
+    if (this.isDead) return;
+    
+    // Set dead state
+    this.isDead = true;
+    this.health = 0;
+    
+    // Stop physics forces
+    if (this.physicsBody) {
+      // Reset velocity
+      this.physicsBody.velocity.set(0, 0, 0);
+      this.physicsBody.angularVelocity.set(0, 0, 0);
+      
+      // Freeze the body to prevent movement
+      this.physicsBody.mass = 0; // Make immovable
+      this.physicsBody.updateMassProperties();
+    }
     
     // Show death effect
     this.showDeathEffect();
     
-    // Reset health and armor
-    this.health = 100;
-    this.armor = 0; // Explicitly reset armor to 0
+    // Stop rendering at eye level (camera lowers)
+    this.cameraHolder.position.y = this.playerHeight * 0.3; // Lower camera to show "lying down"
     
-    // IMPORTANT: Force direct DOM update for health display
-    const healthValueElement = document.getElementById('health-value');
-    if (healthValueElement) {
-      healthValueElement.style.width = '100%';
-      healthValueElement.style.backgroundColor = '#4CAF50'; // Green
-    }
-    
-    const healthTextElement = document.getElementById('health-text');
-    if (healthTextElement) {
-      healthTextElement.textContent = '100';
-    }
-    
-    // Force direct DOM update for armor display
-    const armorValueElement = document.getElementById('armor-value');
-    if (armorValueElement) {
-      armorValueElement.style.width = '0%';
-    }
-    
-    const armorTextElement = document.getElementById('armor-text');
-    if (armorTextElement) {
-      armorTextElement.textContent = '0';
-    }
-    
-    // Also call the regular update methods
-    this.updateHealthDisplay();
-    this.updateArmorDisplay();
-    
-    console.log('Health and armor reset - Health:', this.health, 'Armor:', this.armor);
-    
-    // Reset position to a random spawn point
-    this.respawnAtRandomPosition();
+    // Note: We DON'T respawn automatically anymore - handled by NetworkManager on player input
   }
   
   // Add death effect
@@ -963,5 +950,40 @@ export class Player {
     console.log(`Test ${Math.abs(this.health - expectedFinalHealth) < 0.1 ? 'PASSED ✅' : 'FAILED ❌'}`);
     
     console.log('\n=== TEST COMPLETE ===');
+  }
+  
+  // Reset after network respawn
+  networkRespawn(position) {
+    console.log('Respawning player at position:', position);
+    
+    // Clear dead state
+    this.isDead = false;
+    
+    // Reset health and armor
+    this.health = 100;
+    this.armor = 0;
+    
+    // Update UI
+    this.updateHealthDisplay();
+    this.updateArmorDisplay();
+    
+    // Restore physics
+    if (this.physicsBody) {
+      // Restore mass
+      this.physicsBody.mass = 10; // Reset to normal mass
+      this.physicsBody.updateMassProperties();
+      
+      // Reset velocity
+      this.physicsBody.velocity.set(0, 0, 0);
+      this.physicsBody.angularVelocity.set(0, 0, 0);
+    }
+    
+    // Reset camera height
+    this.cameraHolder.position.y = this.playerHeight * 0.8;
+    
+    // Set position
+    this.setPosition(position.x, position.y, position.z);
+    
+    console.log('Player respawned with health:', this.health);
   }
 } 
