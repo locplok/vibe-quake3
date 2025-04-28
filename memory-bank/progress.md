@@ -240,3 +240,6 @@ The project uses the following structure:
 - Collision detection could be improved for more precise interactions
 - Impact effects could be enhanced with more detailed graphics
 - Network synchronization could be smoother with interpolation
+
+
+this is a stable version of the game
