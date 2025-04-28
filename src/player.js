@@ -249,7 +249,7 @@ export class Player {
   }
   
   handleMovement(deltaTime) {
-    if (!this.input || !this.physicsBody) return;
+    if (!this.input || !this.physicsBody || this.isDead) return;
     
     // Calculate movement input direction
     const moveDirection = new THREE.Vector3(0, 0, 0);
@@ -327,7 +327,7 @@ export class Player {
   }
   
   handleShooting() {
-    if (!this.input || !this.weapons) return;
+    if (!this.input || !this.weapons || this.isDead) return;
     
     // Always ensure weapon system has physics reference
     if (!this.weapons.physics && this.physics) {
