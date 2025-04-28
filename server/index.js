@@ -265,8 +265,39 @@ io.on('connection', (socket) => {
   });
   
   // Add handler for health update requests
-  socket.on('requestHealthUpdate', () => {
-    if (players[socket.id]) {
+  socket.on('requestHealthUpdate', (updateData) => {
+    if (!players[socket.id]) {
+      console.log(`Invalid health update request from non-existent player ${socket.id}`);
+      return;
+    }
+
+    // If this is a heal request
+    if (updateData && updateData.type === 'heal') {
+      const oldHealth = players[socket.id].health;
+      const healAmount = Math.round(updateData.amount);
+      
+      // Validate heal amount
+      if (isNaN(healAmount) || healAmount <= 0) {
+        console.log(`Invalid heal amount: ${healAmount}`);
+        return;
+      }
+
+      // Apply healing, capped at 100
+      players[socket.id].health = Math.min(100, oldHealth + healAmount);
+      
+      console.log(`Player ${socket.id} healed: ${oldHealth} → ${players[socket.id].health}`);
+      
+      // Broadcast the health update to all players
+      const healthUpdateObj = {
+        id: socket.id,
+        health: players[socket.id].health,
+        armor: players[socket.id].armor !== undefined ? players[socket.id].armor : 0
+      };
+      
+      console.log(`Broadcasting heal update: ${JSON.stringify(healthUpdateObj)}`);
+      io.emit('healthUpdate', healthUpdateObj);
+    } else {
+      // Handle regular health sync request
       console.log(`Player ${socket.id} requested health update sync`);
       console.log(`Current values - Health: ${players[socket.id].health}, Armor: ${players[socket.id].armor}`);
       
@@ -274,7 +305,6 @@ io.on('connection', (socket) => {
       const requestedUpdateObj = {
         id: socket.id,
         health: players[socket.id].health,
-        // Ensure armor is never undefined by defaulting to 0
         armor: players[socket.id].armor !== undefined ? players[socket.id].armor : 0
       };
       console.log(`SENDING REQUESTED HEALTH UPDATE: ${JSON.stringify(requestedUpdateObj)}`);
