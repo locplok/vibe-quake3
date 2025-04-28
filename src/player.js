@@ -180,6 +180,14 @@ export class Player {
   
   update(deltaTime) {
     if (!deltaTime) return;
+    
+    // Log deltaTime every 100 frames to avoid console spam
+    if (!this._frameCount) this._frameCount = 0;
+    this._frameCount++;
+    if (this._frameCount % 100 === 0) {
+      console.log(`Current deltaTime: ${deltaTime.toFixed(4)} seconds (${(1/deltaTime).toFixed(1)} FPS)`);
+    }
+    
     // Handle rotation from mouse input
     this.handleRotation();
     
