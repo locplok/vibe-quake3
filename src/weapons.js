@@ -353,15 +353,6 @@ export class WeaponSystem {
       
       if (playerModels[playerId]) {
         console.log(`Adding player ${playerId} to hit detection check`);
-        console.log(`Player model visibility: ${playerModels[playerId].visible}`);
-        console.log(`Player model in scene: ${playerModels[playerId].parent !== null}`);
-        
-        // Additional safety check - don't add players whose models are not visible or not in scene
-        if (!playerModels[playerId].visible || !playerModels[playerId].parent) {
-          console.log(`Skipping player ${playerId} because model is not visible or not in scene`);
-          continue;
-        }
-        
         const playerMesh = playerModels[playerId];
         playerMeshes.push(playerMesh);
         playerIds.set(playerMesh, playerId); // Store the mesh->ID relationship

@@ -181,13 +181,7 @@ export class Player {
   update(deltaTime) {
     if (!deltaTime) return;
     
-    // Log deltaTime every 100 frames to avoid console spam
-    if (!this._frameCount) this._frameCount = 0;
-    this._frameCount++;
-    if (this._frameCount % 100 === 0) {
-      console.log(`Current deltaTime: ${deltaTime.toFixed(4)} seconds (${(1/deltaTime).toFixed(1)} FPS)`);
-    }
-    
+        
     // Handle rotation from mouse input
     this.handleRotation();
     
@@ -486,7 +480,10 @@ export class Player {
     // Visual feedback for taking damage
     this.showDamageEffect();
     
+
+    console.log(`Armor protection rate before dying: ${this.health * 100}%`);
     if (this.health <= 0) {
+      console.log(`Calling Die method`);
       this.die();
     }
   }
@@ -528,11 +525,6 @@ export class Player {
     // this.playDamageSound();
   }
   
-  // Add showDamage method as an alias for showDamageEffect
-  showDamage() {
-    console.log('showDamage called - showing damage effect');
-    this.showDamageEffect();
-  }
   
   heal(amount) {
     this.health = Math.min(100, this.health + amount);
