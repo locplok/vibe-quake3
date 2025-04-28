@@ -789,29 +789,29 @@ export class Player {
   
   // New: Method to add armor
   addArmor(amount) {
+    if (!amount || isNaN(amount)) return;
+    
     const oldArmor = this.armor;
     this.armor = Math.min(this.maxArmor, this.armor + amount);
+    
+    // Show visual feedback for armor pickup
+    if (this.armor > oldArmor) {
+      this.showArmorPickupEffect();
+    }
+
+    // Update armor display
     this.updateArmorDisplay();
-    
-    // Sync the new armor value with the server
-    this.syncArmorWithServer();
-    
-    // Visual feedback for armor pickup
-    this.showArmorEffect();
-    
-    console.log(`Added ${amount} armor: ${oldArmor} → ${this.armor}`);
-  }
-  
-  // New method to sync armor with server
-  syncArmorWithServer() {
-    if (window.game && window.game.network && window.game.network.socket) {
-      console.log(`Syncing armor value with server: ${this.armor}`);
-      window.game.network.socket.emit('debugSetArmor', this.armor);
-      
-      // Force a health update request to get synchronized state
-      window.game.network.socket.emit('requestHealthUpdate');
-    } else {
-      console.warn("Cannot sync armor with server - network unavailable");
+
+    // Sync with server using proper armor pickup event
+    if (this.socket) {
+      this.socket.emit('armorPickup', { amount }, (response) => {
+        if (!response.success) {
+          console.warn('Armor pickup sync failed:', response.message);
+          // Revert to old value if server rejected
+          this.armor = oldArmor;
+          this.updateArmorDisplay();
+        }
+      });
     }
   }
   
@@ -1033,7 +1033,7 @@ export class Player {
   }
   
   // New: Visual feedback for armor pickup
-  showArmorEffect() {
+  showArmorPickupEffect() {
     // Create a blue flash overlay
     if (!this.armorOverlay) {
       this.armorOverlay = document.createElement('div');
