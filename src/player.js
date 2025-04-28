@@ -249,7 +249,12 @@ export class Player {
   }
   
   handleMovement(deltaTime) {
-    if (!this.input || !this.physicsBody || this.isDead) return;
+    if (!this.input || !this.physicsBody || this.isDead) {
+      if (this.isDead) {
+        console.log('Movement blocked - Player is dead');
+      }
+      return;
+    }
     
     // Calculate movement input direction
     const moveDirection = new THREE.Vector3(0, 0, 0);
@@ -327,7 +332,12 @@ export class Player {
   }
   
   handleShooting() {
-    if (!this.input || !this.weapons || this.isDead) return;
+    if (!this.input || !this.weapons || this.isDead) {
+      if (this.isDead) {
+        console.log('Shooting blocked - Player is dead');
+      }
+      return;
+    }
     
     // Always ensure weapon system has physics reference
     if (!this.weapons.physics && this.physics) {
@@ -508,6 +518,12 @@ export class Player {
     // this.playDamageSound();
   }
   
+  // Add showDamage method as an alias for showDamageEffect
+  showDamage() {
+    console.log('showDamage called - showing damage effect');
+    this.showDamageEffect();
+  }
+  
   heal(amount) {
     this.health = Math.min(100, this.health + amount);
     this.updateHealthDisplay();
@@ -517,10 +533,13 @@ export class Player {
   }
   
   die() {
-    console.log('Player died');
+    console.log('Player died - Setting isDead to true');
     
     // Only proceed if we're not already dead
-    if (this.isDead) return;
+    if (this.isDead) {
+      console.log('Player already dead, ignoring die() call');
+      return;
+    }
     
     // Set dead state
     this.isDead = true;
@@ -535,6 +554,7 @@ export class Player {
       // Freeze the body to prevent movement
       this.physicsBody.mass = 0; // Make immovable
       this.physicsBody.updateMassProperties();
+      console.log('Physics body frozen - mass set to 0');
     }
     
     // Show death effect
@@ -954,7 +974,7 @@ export class Player {
   
   // Reset after network respawn
   networkRespawn(position) {
-    console.log('Respawning player at position:', position);
+    console.log('Respawning player - Setting isDead to false');
     
     // Clear dead state
     this.isDead = false;
@@ -972,6 +992,7 @@ export class Player {
       // Restore mass
       this.physicsBody.mass = 10; // Reset to normal mass
       this.physicsBody.updateMassProperties();
+      console.log('Physics body restored - mass set to 10');
       
       // Reset velocity
       this.physicsBody.velocity.set(0, 0, 0);
