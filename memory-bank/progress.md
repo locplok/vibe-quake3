@@ -241,5 +241,3 @@ The project uses the following structure:
 - Impact effects could be enhanced with more detailed graphics
 - Network synchronization could be smoother with interpolation
 
-
-this is a stable version of the game

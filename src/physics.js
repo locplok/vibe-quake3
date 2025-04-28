@@ -4,12 +4,20 @@ export class PhysicsWorld {
   constructor() {
     // Create physics world
     this.world = new CANNON.World({
-      gravity: new CANNON.Vec3(0, -9.8, 0) // Earth gravity
+      gravity: new CANNON.Vec3(0, -9.8, 0), // Earth gravity
+      quatNormalizeSkip: 0, // Don't skip normalization
+      quatNormalizeFast: false, // Don't use fast normalization
+      allowSleep: true,
+      solver: new CANNON.GSSolver(), // Gauss-Seidel solver
     });
     
-    // Set up world parameters
+    // Set up world parameters with improved collision detection
     this.world.broadphase = new CANNON.SAPBroadphase(this.world);
     this.world.allowSleep = true;
+    this.world.solver.iterations = 20; // Increased from default (10) for better collision resolution
+    this.world.solver.tolerance = 0.001; // Decreased tolerance for more accurate solving
+    this.world.defaultContactMaterial.contactEquationStiffness = 1e8; // Increased stiffness
+    this.world.defaultContactMaterial.contactEquationRelaxation = 3; // Adjusted relaxation
     this.world.defaultContactMaterial.friction = 0.1;
     this.world.defaultContactMaterial.restitution = 0.3;
     
@@ -67,24 +75,41 @@ export class PhysicsWorld {
   }
   
   createPlayerBody(position, radius, height) {
-    // Create a capsule shape for the player
-    const playerShape = new CANNON.Cylinder(
+    // Create a compound shape for better collision
+    const compoundShape = new CANNON.Compound();
+    
+    // Main body cylinder
+    const mainBody = new CANNON.Cylinder(
       radius, // Top radius
       radius, // Bottom radius
-      height, // Height
+      height * 0.8, // Slightly shorter height
       8 // Number of segments
     );
+    
+    // Base sphere for better ground contact
+    const baseRadius = radius * 1.2; // Slightly wider than the cylinder
+    const baseShape = new CANNON.Sphere(baseRadius);
+    
+    // Add shapes to compound
+    compoundShape.addChild(mainBody, new CANNON.Vec3(0, height * 0.1, 0)); // Move cylinder up slightly
+    compoundShape.addChild(baseShape, new CANNON.Vec3(0, -height * 0.3, 0)); // Place sphere at bottom
     
     const playerBody = new CANNON.Body({
       mass: 50, // Reduced from 70 to 50 for better acceleration
       position: new CANNON.Vec3(position.x, position.y, position.z),
-      shape: playerShape,
+      shape: compoundShape,
       material: this.playerMaterial,
       collisionFilterGroup: 2, // Player group
       collisionFilterMask: -1, // Collide with everything
-      linearDamping: 0.6, // Reduced from 0.9 for less air resistance (faster movement)
-      angularDamping: 0.9 // Prevent excessive rotation
+      linearDamping: 0.6, // Reduced from 0.9 for less air resistance
+      angularDamping: 0.9, // Prevent excessive rotation
+      fixedRotation: true, // Prevent body from rotating
+      allowSleep: false, // Never sleep
     });
+    
+    // Enable Continuous Collision Detection (CCD)
+    playerBody.ccdSpeedThreshold = 1; // The relative motion speed threshold for CCD to activate
+    playerBody.ccdIterations = 10; // More iterations = better quality but more expensive
     
     // Set player properties on the body for easier identification in collisions
     playerBody.isPlayer = true;

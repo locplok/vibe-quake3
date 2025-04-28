@@ -281,10 +281,12 @@ class Game {
           this.physics.playerMaterial,
           mountainMaterial,
           {
-            friction: 0.9,         // High friction for better climbing
-            restitution: 0.1,      // Low bounce
-            contactEquationStiffness: 1e8,        // Firmer contact
-            contactEquationRelaxation: 3          // Stable contact
+            friction: 1.0,         // Increased friction for better grip
+            restitution: 0.0,      // No bounce
+            contactEquationStiffness: 2e8,        // Very firm contact
+            contactEquationRelaxation: 3,         // Stable contact
+            frictionEquationStiffness: 1e8,       // Strong friction
+            frictionEquationRegularizationTime: 3 // Prevent jitter
           }
         );
         
@@ -295,14 +297,15 @@ class Game {
       // Create mountain shape as a cylinder with tapering
       const mountainShape = new CANNON.Cylinder(radius * 0.05, radius, height, 16);
       
-      // Create mountain physics body
+      // Create mountain physics body with improved settings
       const mountainBody = new CANNON.Body({
         mass: 0, // Static
         position: new CANNON.Vec3(x, height/2, z),
         shape: mountainShape,
         material: mountainMaterial,
         collisionFilterGroup: 1,  // Mountain collision group
-        collisionFilterMask: -1   // Collide with everything
+        collisionFilterMask: -1,  // Collide with everything
+        type: CANNON.Body.STATIC
       });
       
       // Add mountain physics to world
