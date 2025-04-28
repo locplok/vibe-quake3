@@ -210,9 +210,18 @@ export class NetworkManager {
         this.game.player.updateHealthDisplay();
         this.game.player.updateArmorDisplay();
         
-        // Flash screen red if took damage
+        // Flash screen red if took damage, now with direction
         if (oldHealth > healthInfo.health) {
-          this.game.player.showDamageEffect();
+          // Convert hit direction if provided
+          let hitDirection = null;
+          if (healthInfo.hitDirection) {
+            hitDirection = new THREE.Vector3(
+              healthInfo.hitDirection.x,
+              healthInfo.hitDirection.y,
+              healthInfo.hitDirection.z
+            );
+          }
+          this.game.player.showDamageEffect(hitDirection);
         }
         
         // If health dropped to 0 and we weren't already dead, trigger death

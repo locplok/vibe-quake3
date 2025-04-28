@@ -434,10 +434,13 @@ export class Player {
     console.log("Player position set to:", x, y, z);
   }
   
-  takeDamage(amount) {
+  takeDamage(amount, hitDirection) {
     // Debug log to track damage calculation
     console.log(`==== PLAYER TAKING DAMAGE ====`);
     console.log(`Damage amount: ${amount}`);
+    if (hitDirection) {
+      console.log(`Hit direction: (${hitDirection.x.toFixed(2)}, ${hitDirection.y.toFixed(2)}, ${hitDirection.z.toFixed(2)})`);
+    }
     console.log(`Current state: Health=${this.health}, Armor=${this.armor}`);
     console.log(`Armor protection rate: ${this.armorProtection * 100}%`);
     
@@ -483,7 +486,7 @@ export class Player {
     
     // Visual feedback for taking damage
     try {
-      this.showDamageEffect();
+      this.showDamageEffect(hitDirection);
     } catch (error) {
       console.error('Failed to show damage effect:', error);
     }
@@ -496,24 +499,22 @@ export class Player {
   }
   
   // Visual feedback when taking damage
-  showDamageEffect() {
-    console.log('Showing damage effect');
+  showDamageEffect(hitDirection) {
+    console.log('Showing directional damage effect');
     
     try {
-      // Create a red flash overlay if it doesn't exist
-      if (!this.damageOverlay) {
-        console.log('Creating new damage overlay');
-        this.damageOverlay = document.createElement('div');
-        this.damageOverlay.style.position = 'absolute';
-        this.damageOverlay.style.top = '0';
-        this.damageOverlay.style.left = '0';
-        this.damageOverlay.style.width = '100%';
-        this.damageOverlay.style.height = '100%';
-        this.damageOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
-        this.damageOverlay.style.pointerEvents = 'none';
-        this.damageOverlay.style.opacity = '0';
-        this.damageOverlay.style.transition = 'opacity 0.5s';
-        this.damageOverlay.style.zIndex = '1000';
+      // Create or get the damage overlay container
+      let damageOverlayContainer = document.getElementById('damage-overlay-container');
+      if (!damageOverlayContainer) {
+        damageOverlayContainer = document.createElement('div');
+        damageOverlayContainer.id = 'damage-overlay-container';
+        damageOverlayContainer.style.position = 'absolute';
+        damageOverlayContainer.style.top = '0';
+        damageOverlayContainer.style.left = '0';
+        damageOverlayContainer.style.width = '100%';
+        damageOverlayContainer.style.height = '100%';
+        damageOverlayContainer.style.pointerEvents = 'none';
+        damageOverlayContainer.style.zIndex = '1000';
         
         // Make sure we have a UI container
         let uiContainer = document.getElementById('ui-container');
@@ -524,29 +525,91 @@ export class Player {
           document.body.appendChild(uiContainer);
         }
         
-        uiContainer.appendChild(this.damageOverlay);
-        console.log('Damage overlay created and added to UI container');
+        uiContainer.appendChild(damageOverlayContainer);
       }
-      
-      // Flash the overlay
-      this.damageOverlay.style.opacity = '1';
-      console.log('Set overlay opacity to 1');
-      
-      // Clear any existing timeout
-      if (this.damageTimeout) {
-        clearTimeout(this.damageTimeout);
+
+      // Clear any existing overlays
+      damageOverlayContainer.innerHTML = '';
+
+      // Create the base damage vignette (always present)
+      const baseOverlay = document.createElement('div');
+      baseOverlay.style.position = 'absolute';
+      baseOverlay.style.top = '0';
+      baseOverlay.style.left = '0';
+      baseOverlay.style.width = '100%';
+      baseOverlay.style.height = '100%';
+      baseOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+      baseOverlay.style.boxShadow = 'inset 0 0 100px rgba(255, 0, 0, 0.5)';
+      baseOverlay.style.opacity = '0';
+      baseOverlay.style.transition = 'opacity 0.3s';
+      damageOverlayContainer.appendChild(baseOverlay);
+
+      // If we have hit direction, create directional indicator
+      if (hitDirection) {
+        const directionalOverlay = document.createElement('div');
+        directionalOverlay.style.position = 'absolute';
+        directionalOverlay.style.width = '100%';
+        directionalOverlay.style.height = '100%';
+        
+        // Calculate the angle between hit direction and player's forward vector
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation);
+        const angle = Math.atan2(hitDirection.x, hitDirection.z) - Math.atan2(forward.x, forward.z);
+        
+        // Create radial gradient for directional indication
+        const gradientSize = '200%';
+        const gradientPosition = this.calculateGradientPosition(angle);
+        directionalOverlay.style.background = `radial-gradient(circle at ${gradientPosition}, rgba(255, 0, 0, 0.8) 0%, rgba(255, 0, 0, 0.4) 30%, transparent 70%)`;
+        directionalOverlay.style.opacity = '0';
+        directionalOverlay.style.transition = 'opacity 0.3s';
+        damageOverlayContainer.appendChild(directionalOverlay);
+
+        // Fade in the directional overlay
+        requestAnimationFrame(() => {
+          directionalOverlay.style.opacity = '1';
+        });
+
+        // Fade out the directional overlay
+        setTimeout(() => {
+          directionalOverlay.style.opacity = '0';
+          setTimeout(() => {
+            if (directionalOverlay.parentNode) {
+              directionalOverlay.parentNode.removeChild(directionalOverlay);
+            }
+          }, 300);
+        }, 300);
       }
-      
-      // Fade out the overlay
-      this.damageTimeout = setTimeout(() => {
-        if (this.damageOverlay) {
-          this.damageOverlay.style.opacity = '0';
-          console.log('Fading out damage overlay');
-        }
+
+      // Fade in the base overlay
+      requestAnimationFrame(() => {
+        baseOverlay.style.opacity = '1';
+      });
+
+      // Fade out the base overlay
+      setTimeout(() => {
+        baseOverlay.style.opacity = '0';
+        setTimeout(() => {
+          if (baseOverlay.parentNode) {
+            baseOverlay.parentNode.removeChild(baseOverlay);
+          }
+        }, 300);
       }, 300);
+
     } catch (error) {
       console.error('Error in showDamageEffect:', error);
     }
+  }
+  
+  // Helper function to calculate gradient position based on hit angle
+  calculateGradientPosition(angle) {
+    // Normalize angle to 0-360 degrees
+    const degrees = ((angle * 180 / Math.PI) + 360) % 360;
+    
+    // Calculate position percentage
+    const x = 50 + Math.cos(angle) * 50;
+    const y = 50 + Math.sin(angle) * 50;
+    
+    return `${x}% ${y}%`;
   }
   
   heal(amount) {
