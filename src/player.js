@@ -478,7 +478,7 @@ export class Player {
     this.updateHealthDisplay();
     
     // Visual feedback for taking damage
-    this.showDamage();
+    this.showDamageEffect();
     
 
     console.log(`Armor protection rate before dying: ${this.health * 100}%`);
@@ -489,9 +489,12 @@ export class Player {
   }
   
   // Add visual feedback when taking damage
-  showDamage() {
+  showDamageEffect() {
+    console.log('Showing damage effect overlay');
+    
     // Create a red flash overlay
     if (!this.damageOverlay) {
+      console.log('Creating new damage overlay');
       this.damageOverlay = document.createElement('div');
       this.damageOverlay.style.position = 'absolute';
       this.damageOverlay.style.top = '0';
@@ -504,10 +507,14 @@ export class Player {
       this.damageOverlay.style.transition = 'opacity 0.5s';
       this.damageOverlay.style.zIndex = '1000';
       document.body.appendChild(this.damageOverlay);
+      console.log('Damage overlay created and added to document body');
+    } else {
+      console.log('Using existing damage overlay');
     }
     
     // Flash the overlay
     this.damageOverlay.style.opacity = '1';
+    console.log('Set overlay opacity to 1');
     
     // Clear any existing timeout
     if (this.damageTimeout) {
@@ -518,6 +525,7 @@ export class Player {
     this.damageTimeout = setTimeout(() => {
       if (this.damageOverlay) {
         this.damageOverlay.style.opacity = '0';
+        console.log('Fading out damage overlay');
       }
     }, 300);
     
