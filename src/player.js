@@ -478,7 +478,7 @@ export class Player {
     this.updateHealthDisplay();
     
     // Visual feedback for taking damage
-    this.showDamageEffect();
+    this.showDamage();
     
 
     console.log(`Armor protection rate before dying: ${this.health * 100}%`);
@@ -489,7 +489,7 @@ export class Player {
   }
   
   // Add visual feedback when taking damage
-  showDamageEffect() {
+  showDamage() {
     // Create a red flash overlay
     if (!this.damageOverlay) {
       this.damageOverlay = document.createElement('div');
@@ -524,6 +524,8 @@ export class Player {
     // Add sound (to be implemented)
     // this.playDamageSound();
   }
+  
+
   
   
   heal(amount) {
