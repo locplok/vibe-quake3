@@ -65,6 +65,10 @@ export class Player {
     this.canJump = true;
     this.jumpCooldown = 0;
     
+    // Visual effects
+    this.damageOverlay = null;
+    this.damageTimeout = null;
+    
     // Debug physics reference
     console.log("Player constructor - Physics reference:", this.physics ? "YES" : "NO");
     if (this.physics) {
@@ -478,9 +482,12 @@ export class Player {
     this.updateHealthDisplay();
     
     // Visual feedback for taking damage
-    this.showDamageEffect();
+    try {
+      this.showDamageEffect();
+    } catch (error) {
+      console.error('Failed to show damage effect:', error);
+    }
     
-
     console.log(`Armor protection rate before dying: ${this.health * 100}%`);
     if (this.health <= 0) {
       console.log(`Calling Die method`);
@@ -488,53 +495,59 @@ export class Player {
     }
   }
   
-  // Add visual feedback when taking damage
+  // Visual feedback when taking damage
   showDamageEffect() {
-    console.log('Showing damage effect overlay');
+    console.log('Showing damage effect');
     
-    // Create a red flash overlay
-    if (!this.damageOverlay) {
-      console.log('Creating new damage overlay');
-      this.damageOverlay = document.createElement('div');
-      this.damageOverlay.style.position = 'absolute';
-      this.damageOverlay.style.top = '0';
-      this.damageOverlay.style.left = '0';
-      this.damageOverlay.style.width = '100%';
-      this.damageOverlay.style.height = '100%';
-      this.damageOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
-      this.damageOverlay.style.pointerEvents = 'none';
-      this.damageOverlay.style.opacity = '0';
-      this.damageOverlay.style.transition = 'opacity 0.5s';
-      this.damageOverlay.style.zIndex = '1000';
-      document.body.appendChild(this.damageOverlay);
-      console.log('Damage overlay created and added to document body');
-    } else {
-      console.log('Using existing damage overlay');
-    }
-    
-    // Flash the overlay
-    this.damageOverlay.style.opacity = '1';
-    console.log('Set overlay opacity to 1');
-    
-    // Clear any existing timeout
-    if (this.damageTimeout) {
-      clearTimeout(this.damageTimeout);
-    }
-    
-    // Fade out the overlay
-    this.damageTimeout = setTimeout(() => {
-      if (this.damageOverlay) {
+    try {
+      // Create a red flash overlay if it doesn't exist
+      if (!this.damageOverlay) {
+        console.log('Creating new damage overlay');
+        this.damageOverlay = document.createElement('div');
+        this.damageOverlay.style.position = 'absolute';
+        this.damageOverlay.style.top = '0';
+        this.damageOverlay.style.left = '0';
+        this.damageOverlay.style.width = '100%';
+        this.damageOverlay.style.height = '100%';
+        this.damageOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+        this.damageOverlay.style.pointerEvents = 'none';
         this.damageOverlay.style.opacity = '0';
-        console.log('Fading out damage overlay');
+        this.damageOverlay.style.transition = 'opacity 0.5s';
+        this.damageOverlay.style.zIndex = '1000';
+        
+        // Make sure we have a UI container
+        let uiContainer = document.getElementById('ui-container');
+        if (!uiContainer) {
+          console.log('Creating ui-container');
+          uiContainer = document.createElement('div');
+          uiContainer.id = 'ui-container';
+          document.body.appendChild(uiContainer);
+        }
+        
+        uiContainer.appendChild(this.damageOverlay);
+        console.log('Damage overlay created and added to UI container');
       }
-    }, 300);
-    
-    // Add sound (to be implemented)
-    // this.playDamageSound();
+      
+      // Flash the overlay
+      this.damageOverlay.style.opacity = '1';
+      console.log('Set overlay opacity to 1');
+      
+      // Clear any existing timeout
+      if (this.damageTimeout) {
+        clearTimeout(this.damageTimeout);
+      }
+      
+      // Fade out the overlay
+      this.damageTimeout = setTimeout(() => {
+        if (this.damageOverlay) {
+          this.damageOverlay.style.opacity = '0';
+          console.log('Fading out damage overlay');
+        }
+      }, 300);
+    } catch (error) {
+      console.error('Error in showDamageEffect:', error);
+    }
   }
-  
-
-  
   
   heal(amount) {
     this.health = Math.min(100, this.health + amount);
