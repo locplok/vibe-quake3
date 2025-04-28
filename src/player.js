@@ -606,13 +606,16 @@ export class Player {
   syncArmorWithServer() {
     if (window.game && window.game.network && window.game.network.socket) {
       console.log(`Syncing armor value with server: ${this.armor}`);
-      window.game.network.socket.emit('syncHealth', {
-        health: this.health,
-        armor: this.armor
+      window.game.network.socket.emit('armorPickup', {
+        amount: this.armor
+      }, (response) => {
+        if (response && response.success) {
+          console.log('Armor sync confirmed by server:', response);
+          this.updateArmorDisplay();
+        } else {
+          console.warn('Armor sync rejected by server:', response?.message);
+        }
       });
-      
-      // Request a health update from server to verify
-      window.game.network.socket.emit('requestHealthUpdate');
     } else {
       console.warn("Cannot sync armor with server - network unavailable");
     }
@@ -761,23 +764,36 @@ export class Player {
     }
   }
   
-  // Modify addArmor to use the new sync method
+  // Modify addArmor to use the armorPickup event
   addArmor(amount) {
     if (!amount || isNaN(amount)) return;
     
     const oldArmor = this.armor;
-    this.armor = Math.min(this.maxArmor, this.armor + amount);
     
-    // Show visual feedback for armor pickup
-    if (this.armor > oldArmor) {
-      this.showArmorPickupEffect();
+    // Send armor pickup to server and wait for confirmation
+    if (window.game && window.game.network && window.game.network.socket) {
+      console.log(`Sending armor pickup to server: amount=${amount}`);
+      window.game.network.socket.emit('armorPickup', { amount: amount }, (response) => {
+        if (response && response.success) {
+          // Update armor with server-confirmed value
+          this.armor = response.newArmor;
+          console.log(`Armor pickup confirmed by server: ${oldArmor} → ${this.armor}`);
+          
+          // Show visual feedback for armor pickup
+          this.showArmorPickupEffect();
+          
+          // Update display with confirmed value
+          this.updateArmorDisplay();
+        } else {
+          console.warn("Armor pickup rejected by server:", response?.message);
+          // Revert to old armor value
+          this.armor = oldArmor;
+          this.updateArmorDisplay();
+        }
+      });
+    } else {
+      console.warn("Cannot process armor pickup - network unavailable");
     }
-
-    // Update armor display
-    this.updateArmorDisplay();
-
-    // Sync with server
-    this.syncArmorWithServer();
   }
   
   // Modified: Create armor display UI with more spacing
