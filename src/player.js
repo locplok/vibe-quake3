@@ -435,55 +435,13 @@ export class Player {
   }
   
   takeDamage(amount, hitDirection) {
-    // Debug log to track damage calculation
+    // Debug log to track damage application
     console.log(`==== PLAYER TAKING DAMAGE ====`);
-    console.log(`Current health before damage: ${this.health}`);
-    console.log(`Damage amount: ${amount}`);
-    if (hitDirection) {
-      console.log(`Hit direction: (${hitDirection.x.toFixed(2)}, ${hitDirection.y.toFixed(2)}, ${hitDirection.z.toFixed(2)})`);
-    }
-    console.log(`Current state: Health=${this.health}, Armor=${this.armor}`);
-    console.log(`Armor protection rate: ${this.armorProtection * 100}%`);
+    console.log(`Current state before damage: Health=${this.health}, Armor=${this.armor}`);
+    console.log(`Applying damage amount: ${amount}`);
     
-    // Calculate damage distribution between armor and health
-    let healthDamage = amount;
-    let armorDamage = 0;
-    
-    // If player has armor, it reduces damage to health
-    if (this.armor > 0) {
-      // Calculate maximum damage that can go to armor (80% of total)
-      const maxArmorDamage = amount * this.armorProtection;
-      console.log(`- Maximum armor damage (${this.armorProtection*100}% of total): ${maxArmorDamage.toFixed(2)}`);
-      
-      // Limit by available armor
-      armorDamage = Math.min(this.armor, maxArmorDamage);
-      console.log(`- Actual armor damage: ${armorDamage.toFixed(2)}`);
-      
-      // Update armor value
-      const oldArmor = this.armor;
-      this.armor = Math.round(Math.max(0, this.armor - armorDamage));
-      console.log(`- Armor reduced: ${oldArmor} → ${this.armor}`);
-      
-      // Calculate final health damage (original damage minus what armor absorbed)
-      healthDamage = amount - armorDamage;
-      console.log(`- Final health damage: ${healthDamage.toFixed(2)}`);
-      
-      // Update armor display
-      this.updateArmorDisplay();
-    } else {
-      console.log(`- No armor available, full damage (${amount}) goes to health`);
-      // Make sure health damage is set to full amount
-      healthDamage = amount;
-    }
-    
-    // Apply remaining damage to health
-    const oldHealth = this.health;
-    // ROUND health values to integers
-    this.health = Math.round(Math.max(0, this.health - healthDamage));
-    console.log(`- Health reduced: ${oldHealth} → ${this.health}`);
-    console.log(`==== DAMAGE CALCULATION COMPLETE ====`);
-    
-    this.updateHealthDisplay();
+    // Note: Actual damage calculation is now handled server-side
+    // Client just applies the updated values received via network updates
     
     // Visual feedback for taking damage
     try {

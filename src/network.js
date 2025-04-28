@@ -191,13 +191,9 @@ export class NetworkManager {
         const oldHealth = this.game.player.health;
         const oldArmor = this.game.player.armor;
         
-        // Update health and armor values from server
+        // Apply the server's values directly
         this.game.player.health = healthInfo.health;
-        
-        // Only update armor if it's defined
-        if (healthInfo.armor !== undefined) {
-          this.game.player.armor = healthInfo.armor;
-        }
+        this.game.player.armor = healthInfo.armor !== undefined ? healthInfo.armor : 0;
         
         // Update displays
         this.game.player.updateHealthDisplay();
@@ -205,10 +201,8 @@ export class NetworkManager {
         
         // Show appropriate visual effects based on health change
         if (oldHealth < healthInfo.health) {
-          // Health increased
           this.game.player.showHealEffect();
         } else if (oldHealth > healthInfo.health) {
-          // Health decreased
           let hitDirection = null;
           if (healthInfo.hitDirection) {
             hitDirection = new THREE.Vector3(
@@ -220,24 +214,20 @@ export class NetworkManager {
           this.game.player.showDamageEffect(hitDirection);
         }
         
-        // Log the health change
+        // Log the changes
         console.log(`Health updated: ${oldHealth} → ${healthInfo.health}`);
-        if (healthInfo.armor !== undefined) {
-          console.log(`Armor updated: ${oldArmor} → ${healthInfo.armor}`);
-        }
+        console.log(`Armor updated: ${oldArmor} → ${this.game.player.armor}`);
         
-        // If health dropped to 0 and we weren't already dead, trigger death
+        // Check for death
         if (healthInfo.health <= 0 && !this.game.player.isDead) {
           console.log('Health reached 0 - triggering death');
           this.game.player.die();
         }
       } 
-      // If it's for another player, store it
+      // If it's for another player, update their stored values
       else if (this.players[healthInfo.id]) {
         this.players[healthInfo.id].health = healthInfo.health;
-        if (healthInfo.armor !== undefined) {
-          this.players[healthInfo.id].armor = healthInfo.armor;
-        }
+        this.players[healthInfo.id].armor = healthInfo.armor !== undefined ? healthInfo.armor : 0;
       }
     });
     
