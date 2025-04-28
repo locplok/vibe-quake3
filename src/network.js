@@ -193,6 +193,9 @@ export class NetworkManager {
           console.log(`First health update received with armor: ${healthInfo.armor}`);
         }
         
+        // Store old health for damage flash check
+        const oldHealth = this.game.player.health;
+        
         // Update player health
         this.game.player.health = healthInfo.health;
         
@@ -208,12 +211,15 @@ export class NetworkManager {
         this.game.player.updateArmorDisplay();
         
         // Flash screen red if took damage
-        if (this.game.player.lastHealth > healthInfo.health) {
-          this.game.player.showDamage();
+        if (oldHealth > healthInfo.health) {
+          this.game.player.showDamageEffect();
         }
         
-        // Store current health for next comparison
-        this.game.player.lastHealth = healthInfo.health;
+        // If health dropped to 0 and we weren't already dead, trigger death
+        if (healthInfo.health <= 0 && !this.game.player.isDead) {
+          console.log('Health reached 0 - triggering death');
+          this.game.player.die();
+        }
       } 
       // If it's for another player, store it
       else if (this.players[healthInfo.id]) {
