@@ -437,6 +437,7 @@ export class Player {
   takeDamage(amount, hitDirection) {
     // Debug log to track damage calculation
     console.log(`==== PLAYER TAKING DAMAGE ====`);
+    console.log(`Current health before damage: ${this.health}`);
     console.log(`Damage amount: ${amount}`);
     if (hitDirection) {
       console.log(`Hit direction: (${hitDirection.x.toFixed(2)}, ${hitDirection.y.toFixed(2)}, ${hitDirection.z.toFixed(2)})`);
@@ -491,7 +492,9 @@ export class Player {
       console.error('Failed to show damage effect:', error);
     }
     
-    console.log(`Armor protection rate before dying: ${this.health * 100}%`);
+    // Sync with server after damage
+    this.syncHealthWithServer();
+    
     if (this.health <= 0) {
       console.log(`Calling Die method`);
       this.die();
@@ -613,11 +616,33 @@ export class Player {
   }
   
   heal(amount) {
+    const oldHealth = this.health;
     this.health = Math.min(100, this.health + amount);
     this.updateHealthDisplay();
     
     // Visual feedback for healing
     this.showHealEffect();
+
+    // Sync health with server
+    this.syncHealthWithServer();
+
+    console.log(`Healed from ${oldHealth} to ${this.health}`);
+  }
+  
+  // New method to sync health with server
+  syncHealthWithServer() {
+    if (window.game && window.game.network && window.game.network.socket) {
+      console.log(`Syncing health value with server: ${this.health}`);
+      window.game.network.socket.emit('syncHealth', {
+        health: this.health,
+        armor: this.armor // Also sync armor to ensure consistency
+      });
+      
+      // Request a health update from server to verify
+      window.game.network.socket.emit('requestHealthUpdate');
+    } else {
+      console.warn("Cannot sync health with server - network unavailable");
+    }
   }
   
   die() {

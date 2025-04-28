@@ -187,32 +187,28 @@ export class NetworkManager {
       if (healthInfo.id === this.socket.id && this.game.player) {
         console.log(`Updating our health to ${healthInfo.health} and armor to ${healthInfo.armor}`);
         
-        // If this is the first health update, save the armor value
-        if (!this._receivedFirstHealthUpdate) {
-          this._receivedFirstHealthUpdate = true;
-          console.log(`First health update received with armor: ${healthInfo.armor}`);
-        }
-        
-        // Store old health for damage flash check
+        // Store old values for comparison
         const oldHealth = this.game.player.health;
+        const oldArmor = this.game.player.armor;
         
-        // Update player health
+        // Update health and armor values from server
         this.game.player.health = healthInfo.health;
         
         // Only update armor if it's defined
         if (healthInfo.armor !== undefined) {
           this.game.player.armor = healthInfo.armor;
-        } else {
-          console.warn("Server sent health update without armor value!");
         }
         
-        // Update UI
+        // Update displays
         this.game.player.updateHealthDisplay();
         this.game.player.updateArmorDisplay();
         
-        // Flash screen red if took damage, now with direction
-        if (oldHealth > healthInfo.health) {
-          // Convert hit direction if provided
+        // Show appropriate visual effects based on health change
+        if (oldHealth < healthInfo.health) {
+          // Health increased
+          this.game.player.showHealEffect();
+        } else if (oldHealth > healthInfo.health) {
+          // Health decreased
           let hitDirection = null;
           if (healthInfo.hitDirection) {
             hitDirection = new THREE.Vector3(
@@ -224,6 +220,12 @@ export class NetworkManager {
           this.game.player.showDamageEffect(hitDirection);
         }
         
+        // Log the health change
+        console.log(`Health updated: ${oldHealth} → ${healthInfo.health}`);
+        if (healthInfo.armor !== undefined) {
+          console.log(`Armor updated: ${oldArmor} → ${healthInfo.armor}`);
+        }
+        
         // If health dropped to 0 and we weren't already dead, trigger death
         if (healthInfo.health <= 0 && !this.game.player.isDead) {
           console.log('Health reached 0 - triggering death');
@@ -233,10 +235,29 @@ export class NetworkManager {
       // If it's for another player, store it
       else if (this.players[healthInfo.id]) {
         this.players[healthInfo.id].health = healthInfo.health;
-        
-        // Only update armor if it's defined
         if (healthInfo.armor !== undefined) {
           this.players[healthInfo.id].armor = healthInfo.armor;
+        }
+      }
+    });
+    
+    // Add new event listener for health sync confirmation
+    this.socket.on('healthSyncConfirmed', (syncInfo) => {
+      console.log('Health sync confirmed by server:', syncInfo);
+      
+      if (this.game.player) {
+        // Update local health if it differs from server
+        if (this.game.player.health !== syncInfo.health) {
+          console.log(`Correcting health discrepancy: local=${this.game.player.health}, server=${syncInfo.health}`);
+          this.game.player.health = syncInfo.health;
+          this.game.player.updateHealthDisplay();
+        }
+        
+        // Update local armor if it differs from server
+        if (syncInfo.armor !== undefined && this.game.player.armor !== syncInfo.armor) {
+          console.log(`Correcting armor discrepancy: local=${this.game.player.armor}, server=${syncInfo.armor}`);
+          this.game.player.armor = syncInfo.armor;
+          this.game.player.updateArmorDisplay();
         }
       }
     });
