@@ -602,13 +602,29 @@ export class Player {
     }
   }
   
-  // New method to sync health with server
-  syncHealthWithServer() {
+  // Sync armor value with server
+  syncArmorWithServer() {
     if (window.game && window.game.network && window.game.network.socket) {
-      console.log(`Syncing health value with server: ${this.health}`);
+      console.log(`Syncing armor value with server: ${this.armor}`);
       window.game.network.socket.emit('syncHealth', {
         health: this.health,
-        armor: this.armor // Also sync armor to ensure consistency
+        armor: this.armor
+      });
+      
+      // Request a health update from server to verify
+      window.game.network.socket.emit('requestHealthUpdate');
+    } else {
+      console.warn("Cannot sync armor with server - network unavailable");
+    }
+  }
+
+  // Update existing syncHealthWithServer to include armor
+  syncHealthWithServer() {
+    if (window.game && window.game.network && window.game.network.socket) {
+      console.log(`Syncing health and armor values with server: Health=${this.health}, Armor=${this.armor}`);
+      window.game.network.socket.emit('syncHealth', {
+        health: this.health,
+        armor: this.armor
       });
       
       // Request a health update from server to verify
@@ -745,7 +761,7 @@ export class Player {
     }
   }
   
-  // New: Method to add armor
+  // Modify addArmor to use the new sync method
   addArmor(amount) {
     if (!amount || isNaN(amount)) return;
     
@@ -760,17 +776,8 @@ export class Player {
     // Update armor display
     this.updateArmorDisplay();
 
-    // Sync with server using proper armor pickup event
-    if (this.socket) {
-      this.socket.emit('armorPickup', { amount }, (response) => {
-        if (!response.success) {
-          console.warn('Armor pickup sync failed:', response.message);
-          // Revert to old value if server rejected
-          this.armor = oldArmor;
-          this.updateArmorDisplay();
-        }
-      });
-    }
+    // Sync with server
+    this.syncArmorWithServer();
   }
   
   // Modified: Create armor display UI with more spacing
