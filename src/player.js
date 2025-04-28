@@ -180,7 +180,6 @@ export class Player {
   
   update(deltaTime) {
     if (!deltaTime) return;
-    console.log("delta time updated");
     // Handle rotation from mouse input
     this.handleRotation();
     
@@ -250,6 +249,9 @@ export class Player {
   
   handleMovement(deltaTime) {
     if (!this.input || !this.physicsBody || this.isDead) {
+
+    console.log("delta time updated");
+    console.log(this.isDead);
       if (this.isDead) {
         console.log('Movement blocked - Player is dead');
       }
