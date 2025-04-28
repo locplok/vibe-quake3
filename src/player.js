@@ -618,15 +618,26 @@ export class Player {
   heal(amount) {
     const oldHealth = this.health;
     this.health = Math.min(100, this.health + amount);
-    this.updateHealthDisplay();
     
     // Visual feedback for healing
     this.showHealEffect();
+    
+    // Update display immediately for responsiveness
+    this.updateHealthDisplay();
 
-    // Sync health with server
-    this.syncHealthWithServer();
+    // Send health update to server and wait for confirmation
+    if (window.game && window.game.network && window.game.network.socket) {
+      console.log(`Requesting health update to server: ${this.health}`);
+      window.game.network.socket.emit('requestHealthUpdate', {
+        health: this.health,
+        type: 'heal',
+        amount: amount
+      });
+    } else {
+      console.warn("Cannot sync health with server - network unavailable");
+    }
 
-    console.log(`Healed from ${oldHealth} to ${this.health}`);
+    console.log(`Local heal from ${oldHealth} to ${this.health} (waiting for server confirmation)`);
   }
   
   // New method to sync health with server
