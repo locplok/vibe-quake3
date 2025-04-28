@@ -561,8 +561,10 @@ export class Player {
       console.log('Physics body frozen - mass set to 0');
     }
     
-    // Show death effect
-    this.showDeathEffect();
+    // Show death effect (only if not already showing from network event)
+    if (!document.getElementById('death-overlay')) {
+      this.showDeathEffect();
+    }
     
     // Stop rendering at eye level (camera lowers)
     this.cameraHolder.position.y = this.playerHeight * 0.3; // Lower camera to show "lying down"
