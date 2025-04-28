@@ -75,29 +75,19 @@ export class PhysicsWorld {
   }
   
   createPlayerBody(position, radius, height) {
-    // Create a compound shape for better collision
-    const compoundShape = new CANNON.Compound();
-    
-    // Main body cylinder
-    const mainBody = new CANNON.Cylinder(
-      radius, // Top radius
-      radius, // Bottom radius
-      height * 0.8, // Slightly shorter height
-      8 // Number of segments
+    // Create a cylinder shape for the player with a wider base for stability
+    const playerShape = new CANNON.Cylinder(
+      radius * 1.2, // Bottom radius (wider)
+      radius * 0.8, // Top radius (narrower)
+      height, // Height
+      12 // More segments for better collision
     );
     
-    // Base sphere for better ground contact
-    const baseRadius = radius * 1.2; // Slightly wider than the cylinder
-    const baseShape = new CANNON.Sphere(baseRadius);
-    
-    // Add shapes to compound
-    compoundShape.addChild(mainBody, new CANNON.Vec3(0, height * 0.1, 0)); // Move cylinder up slightly
-    compoundShape.addChild(baseShape, new CANNON.Vec3(0, -height * 0.3, 0)); // Place sphere at bottom
-    
+    // Create the physics body
     const playerBody = new CANNON.Body({
       mass: 50, // Reduced from 70 to 50 for better acceleration
       position: new CANNON.Vec3(position.x, position.y, position.z),
-      shape: compoundShape,
+      shape: playerShape,
       material: this.playerMaterial,
       collisionFilterGroup: 2, // Player group
       collisionFilterMask: -1, // Collide with everything
@@ -106,6 +96,11 @@ export class PhysicsWorld {
       fixedRotation: true, // Prevent body from rotating
       allowSleep: false, // Never sleep
     });
+    
+    // Rotate the cylinder to stand upright
+    const quatX = new CANNON.Quaternion();
+    quatX.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
+    playerBody.quaternion.copy(quatX);
     
     // Enable Continuous Collision Detection (CCD)
     playerBody.ccdSpeedThreshold = 1; // The relative motion speed threshold for CCD to activate
