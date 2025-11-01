@@ -10,9 +10,11 @@ export class NetworkManager {
     this.playerName = '';
     
     // When using Vite proxy, we can just use relative URL for Socket.IO connection
+    // Use environment variable or fallback to default
+    const serverUrlEnv = import.meta.env.VITE_SERVER_URL;
     this.serverUrl = window.location.hostname === 'localhost' 
       ? window.location.origin 
-      : 'https://vibe-quake3-server.onrender.com'; // Using default HTTPS port on Render
+      : (serverUrlEnv || 'https://vibe-quake3-server.onrender.com'); // Using default HTTPS port on Render
     console.log("Using server URL:", this.serverUrl);
     
     // Debug flag for logging network messages
@@ -692,6 +694,48 @@ export class NetworkManager {
     respawnPrompt.style.animation = 'pulse 1.5s infinite';
     respawnPrompt.textContent = 'Press ENTER to respawn';
     
+    // Add mouse inversion option
+    const mouseInvertContainer = document.createElement('div');
+    mouseInvertContainer.style.display = 'flex';
+    mouseInvertContainer.style.alignItems = 'center';
+    mouseInvertContainer.style.justifyContent = 'center';
+    mouseInvertContainer.style.marginTop = '20px';
+    mouseInvertContainer.style.marginBottom = '10px';
+    
+    const mouseInvertCheckbox = document.createElement('input');
+    mouseInvertCheckbox.type = 'checkbox';
+    mouseInvertCheckbox.id = 'death-mouse-invert-checkbox';
+    mouseInvertCheckbox.style.marginRight = '10px';
+    mouseInvertCheckbox.style.width = '18px';
+    mouseInvertCheckbox.style.height = '18px';
+    mouseInvertCheckbox.style.cursor = 'pointer';
+    
+    // Load current state
+    const savedInvert = localStorage.getItem('invertMouseY');
+    mouseInvertCheckbox.checked = savedInvert === 'true';
+    
+    const mouseInvertLabel = document.createElement('label');
+    mouseInvertLabel.setAttribute('for', 'death-mouse-invert-checkbox');
+    mouseInvertLabel.textContent = 'Inverser l\'axe Y de la souris';
+    mouseInvertLabel.style.color = 'white';
+    mouseInvertLabel.style.fontSize = '16px';
+    mouseInvertLabel.style.cursor = 'pointer';
+    mouseInvertLabel.style.userSelect = 'none';
+    
+    // Handle checkbox change
+    mouseInvertCheckbox.addEventListener('change', () => {
+      const newValue = mouseInvertCheckbox.checked;
+      localStorage.setItem('invertMouseY', newValue.toString());
+      
+      // Update input handler if available
+      if (this.game && this.game.inputHandler) {
+        this.game.inputHandler.setInvertMouseY(newValue);
+      }
+    });
+    
+    mouseInvertContainer.appendChild(mouseInvertCheckbox);
+    mouseInvertContainer.appendChild(mouseInvertLabel);
+    
     // Add a style for the pulsing animation
     const style = document.createElement('style');
     style.textContent = `
@@ -705,6 +749,7 @@ export class NetworkManager {
     
     overlay.appendChild(deathMessage);
     overlay.appendChild(survivalTimeDisplay);
+    overlay.appendChild(mouseInvertContainer);
     overlay.appendChild(respawnPrompt);
     
     uiContainer.appendChild(overlay);

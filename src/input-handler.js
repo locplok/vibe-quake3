@@ -24,6 +24,10 @@ export class InputHandler {
     // Mouse sensitivity
     this.mouseSensitivity = 0.002;
     
+    // Mouse Y inversion preference (load from localStorage)
+    const savedInvert = localStorage.getItem('invertMouseY');
+    this.invertMouseY = savedInvert === 'true';
+    
     // Setup event listeners
     this.setupKeyboardListeners();
     this.setupMouseListeners();
@@ -161,5 +165,20 @@ export class InputHandler {
   resetMouseDelta() {
     this.mouse.dx = 0;
     this.mouse.dy = 0;
+  }
+  
+  // Toggle mouse Y inversion and save to localStorage
+  toggleInvertMouseY() {
+    this.invertMouseY = !this.invertMouseY;
+    localStorage.setItem('invertMouseY', this.invertMouseY.toString());
+    console.log(`Mouse Y inversion ${this.invertMouseY ? 'enabled' : 'disabled'}`);
+    return this.invertMouseY;
+  }
+  
+  // Set mouse Y inversion state
+  setInvertMouseY(value) {
+    this.invertMouseY = value === true;
+    localStorage.setItem('invertMouseY', this.invertMouseY.toString());
+    console.log(`Mouse Y inversion set to ${this.invertMouseY}`);
   }
 } 

@@ -14,9 +14,11 @@ class LoginHandler {
     this.loginForm = document.getElementById('login-form');
     this.randomNameBtn = document.getElementById('random-name');
     this.errorMessage = document.getElementById('error-message');
+    this.mouseInvertCheckbox = document.getElementById('mouse-invert-checkbox');
     
     this.setupEventListeners();
     this.checkSavedName();
+    this.checkSavedMouseInvert();
   }
   
   setupEventListeners() {
@@ -37,6 +39,14 @@ class LoginHandler {
     const savedName = localStorage.getItem('playerName');
     if (savedName) {
       this.nameInput.value = savedName;
+    }
+  }
+  
+  // Check if we already have a saved mouse inversion preference
+  checkSavedMouseInvert() {
+    const savedInvert = localStorage.getItem('invertMouseY');
+    if (savedInvert === 'true') {
+      this.mouseInvertCheckbox.checked = true;
     }
   }
   
@@ -71,6 +81,10 @@ class LoginHandler {
     
     // Save name to localStorage for next time
     localStorage.setItem('playerName', name);
+    
+    // Save mouse inversion preference
+    const invertMouseY = this.mouseInvertCheckbox.checked;
+    localStorage.setItem('invertMouseY', invertMouseY.toString());
     
     // Hide the login modal
     document.getElementById('login-modal').style.display = 'none';
